@@ -55,7 +55,7 @@ export default function MobileDashboard({ user, performance, recentTasks, todayT
             case 'sedang_dikerjakan':
                 return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 text-[10px] gap-0.5 px-1.5"><Play className="h-3 w-3" /> Aktif</Badge>;
             default:
-                return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 text-[10px] gap-0.5 px-1.5"><Target className="h-3 w-3" /> Pending</Badge>;
+                return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 text-[10px] gap-0.5 px-1.5"><Target className="h-3 w-3" /> Belum Dikerjakan</Badge>;
         }
     };
 
@@ -88,7 +88,7 @@ export default function MobileDashboard({ user, performance, recentTasks, todayT
                                 {format(new Date(), 'EEEE, d MMMM yyyy', { locale: id })}
                             </div>
                             <h1 className="text-xl font-bold mt-1">
-                                Halo, {user?.name?.split(' ')[0] || 'Pelaksana'}! 👋
+                                Halo, {user?.name?.split(' ')[0] || 'Staff'}! 👋
                             </h1>
                             {user?.tempat && (
                                 <div className="text-xs opacity-70 mt-0.5">

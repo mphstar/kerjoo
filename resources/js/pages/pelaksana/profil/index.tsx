@@ -585,7 +585,7 @@ export default function ProfilIndex({ user }: Props) {
 
                     {/* Version Info */}
                     <p className="text-center text-xs text-muted-foreground pt-2">
-                        Logbook App v1.0.0
+                        &copy; {new Date().getFullYear()} Kerjoo. Hak Cipta Dilindungi.
                     </p>
                 </div>
             </div>

@@ -15,6 +15,7 @@ class TugasController extends Controller
         $validated = $request->validate([
             'kategori_id' => 'required|exists:kategori,id',
             'nama' => 'required|string|max:255',
+            'tipe' => 'required|in:harian,mingguan,bulanan,tahunan,lainnya',
             'deskripsi' => 'nullable|string',
             'persyaratan' => 'required|array',
             'persyaratan.foto' => 'boolean',
@@ -47,6 +48,7 @@ class TugasController extends Controller
         $validated = $request->validate([
             'kategori_id' => 'required|exists:kategori,id',
             'nama' => 'required|string|max:255',
+            'tipe' => 'required|in:harian,mingguan,bulanan,tahunan,lainnya',
             'deskripsi' => 'nullable|string',
             'persyaratan' => 'required|array',
             'persyaratan.foto' => 'boolean',

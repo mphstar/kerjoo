@@ -1,3 +1,4 @@
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
@@ -29,7 +30,7 @@ import { TemplatePenugasanHarian, Tugas, User } from '@/types/logbook';
 import { Head, router, useForm } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Edit, Plus, Trash2, Copy, MapPin, Navigation, Loader2, CalendarIcon, Play, Users } from 'lucide-react';
+import { AlertTriangle, Edit, Plus, Trash2, Copy, MapPin, Navigation, Loader2, CalendarIcon, Play, Users } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import LocationMap from '@/components/location-map';
 
@@ -58,6 +59,10 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
     const [gettingLocation, setGettingLocation] = useState(false);
     const [triggerProcessing, setTriggerProcessing] = useState(false);
     const [triggerDate, setTriggerDate] = useState<Date | undefined>(new Date());
+    const [holidayInfo, setHolidayInfo] = useState<{ is_holiday: boolean; holiday?: { nama: string; deskripsi?: string } } | null>(null);
+    const [checkingHoliday, setCheckingHoliday] = useState(false);
+    const [triggerError, setTriggerError] = useState<string | null>(null);
+    const [triggerSuccess, setTriggerSuccess] = useState<string | null>(null);
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
         nama: '',
@@ -80,6 +85,29 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
             setEditItem(null);
         }
     }, [dialogOpen]);
+
+    // Check if selected trigger date is a holiday
+    useEffect(() => {
+        const checkHoliday = async () => {
+            if (!triggerDate || !triggerDialogOpen) {
+                setHolidayInfo(null);
+                return;
+            }
+
+            setCheckingHoliday(true);
+            try {
+                const response = await fetch(`/admin/hari-libur/check?tanggal=${format(triggerDate, 'yyyy-MM-dd')}`);
+                const result = await response.json();
+                setHolidayInfo(result);
+            } catch (error) {
+                setHolidayInfo(null);
+            } finally {
+                setCheckingHoliday(false);
+            }
+        };
+
+        checkHoliday();
+    }, [triggerDate, triggerDialogOpen]);
 
     // Get selected pelaksana
     const selectedPelaksana = useMemo(() => {
@@ -197,64 +225,56 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
         }
     };
 
-    const handleTriggerAll = async () => {
+    const handleTriggerAll = (skipHolidayCheck: boolean = false) => {
         if (!triggerDate) {
-            alert('Pilih tanggal terlebih dahulu');
+            setTriggerError('Pilih tanggal terlebih dahulu');
             return;
         }
 
         setTriggerProcessing(true);
+        setTriggerError(null);
+        setTriggerSuccess(null);
 
-        try {
-            const response = await fetch('/admin/template-harian/trigger-all', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify({
-                    tanggal: format(triggerDate, 'yyyy-MM-dd'),
-                }),
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                alert(result.message);
-                setTriggerDialogOpen(false);
-                router.reload();
-            } else {
-                if (result.is_holiday) {
-                    if (confirm(`${result.message}\n\nApakah Anda ingin tetap melanjutkan?`)) {
-                        // Retry with skip_holiday_check
-                        const retryResponse = await fetch('/admin/template-harian/trigger-all', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                            },
-                            body: JSON.stringify({
-                                tanggal: format(triggerDate, 'yyyy-MM-dd'),
-                                skip_holiday_check: true,
-                            }),
-                        });
-                        const retryResult = await retryResponse.json();
-                        if (retryResult.success) {
-                            alert(retryResult.message);
-                            setTriggerDialogOpen(false);
-                            router.reload();
+        router.post(
+            '/admin/template-harian/trigger-all',
+            {
+                tanggal: format(triggerDate, 'yyyy-MM-dd'),
+                skip_holiday_check: skipHolidayCheck,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: (page) => {
+                    const flash = (page.props as { flash?: { success?: string; error?: string; is_holiday?: boolean; holiday?: { nama: string } } }).flash;
+                    if (flash?.success) {
+                        setTriggerSuccess(flash.success);
+                        setTimeout(() => {
+                            handleTriggerDialogChange(false);
+                        }, 1500);
+                    } else if (flash?.error) {
+                        if (flash.is_holiday && !skipHolidayCheck) {
+                            setTriggerError(flash.error);
                         } else {
-                            alert(retryResult.message || 'Gagal membuat penugasan');
+                            setTriggerError(flash.error);
                         }
                     }
-                } else {
-                    alert(result.message || 'Gagal membuat penugasan');
-                }
+                },
+                onError: (errors) => {
+                    const errorMessage = Object.values(errors).flat().join(', ');
+                    setTriggerError(errorMessage || 'Gagal membuat penugasan');
+                },
+                onFinish: () => {
+                    setTriggerProcessing(false);
+                },
             }
-        } catch (error) {
-            alert('Terjadi kesalahan saat memproses');
-        } finally {
-            setTriggerProcessing(false);
+        );
+    };
+
+    // Reset trigger dialog state when closed
+    const handleTriggerDialogChange = (open: boolean) => {
+        setTriggerDialogOpen(open);
+        if (!open) {
+            setTriggerError(null);
+            setTriggerSuccess(null);
         }
     };
 
@@ -576,7 +596,7 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
             </Dialog>
 
             {/* Trigger All Dialog */}
-            <Dialog open={triggerDialogOpen} onOpenChange={setTriggerDialogOpen}>
+            <Dialog open={triggerDialogOpen} onOpenChange={handleTriggerDialogChange}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
@@ -616,6 +636,52 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
                             </Popover>
                         </div>
 
+                        {checkingHoliday && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Memeriksa tanggal...</span>
+                            </div>
+                        )}
+
+                        {holidayInfo?.is_holiday && (
+                            <div className="flex items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900 dark:bg-yellow-950">
+                                <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="font-medium text-yellow-800 dark:text-yellow-200">
+                                        Hari Libur: {holidayInfo.holiday?.nama}
+                                    </p>
+                                    {holidayInfo.holiday?.deskripsi && (
+                                        <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                                            {holidayInfo.holiday.deskripsi}
+                                        </p>
+                                    )}
+                                    <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                                        Anda tetap bisa membuat penugasan jika diperlukan.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Error Message */}
+                        {triggerError && (
+                            <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
+                                <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+                                <p className="text-sm text-red-700 dark:text-red-300">{triggerError}</p>
+                            </div>
+                        )}
+
+                        {/* Success Message */}
+                        {triggerSuccess && (
+                            <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950">
+                                <div className="h-4 w-4 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <p className="text-sm text-green-700 dark:text-green-300">{triggerSuccess}</p>
+                            </div>
+                        )}
+
                         <div className="bg-muted/50 p-3 rounded-md text-sm">
                             <p className="font-medium mb-2">Template yang akan dieksekusi:</p>
                             <ul className="space-y-1">
@@ -630,14 +696,29 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
                         </div>
                     </div>
 
-                    <DialogFooter>
-                        <Button type="button" variant="secondary" onClick={() => setTriggerDialogOpen(false)}>
+                    <DialogFooter className="flex-col sm:flex-row gap-2">
+                        <Button type="button" variant="secondary" onClick={() => handleTriggerDialogChange(false)}>
                             Batal
                         </Button>
-                        <Button onClick={handleTriggerAll} disabled={triggerProcessing || !triggerDate}>
-                            {triggerProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Eksekusi Sekarang
-                        </Button>
+                        {holidayInfo?.is_holiday ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => handleTriggerAll(true)}
+                                disabled={triggerProcessing || !triggerDate || !!triggerSuccess}
+                            >
+                                {triggerProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Tetap Buat Penugasan
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={() => handleTriggerAll(false)}
+                                disabled={triggerProcessing || !triggerDate || !!triggerSuccess}
+                            >
+                                {triggerProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Eksekusi Sekarang
+                            </Button>
+                        )}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

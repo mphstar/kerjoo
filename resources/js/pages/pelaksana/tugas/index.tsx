@@ -185,7 +185,7 @@ export default function TugasIndex({ penugasan, filters }: Props) {
             case 'sedang_dikerjakan':
                 return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 gap-1"><Play className="h-3 w-3" /> Aktif</Badge>;
             default:
-                return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 gap-1"><Target className="h-3 w-3" /> Pending</Badge>;
+                return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 gap-1"><Target className="h-3 w-3" /> Belum Dikerjakan</Badge>;
         }
     };
 
@@ -216,7 +216,7 @@ export default function TugasIndex({ penugasan, filters }: Props) {
         { key: 'all', label: 'Semua', count: stats.total },
         { key: 'urgent', label: 'Mendesak', count: stats.urgent, color: 'text-red-600' },
         { key: 'sedang_dikerjakan', label: 'Aktif', count: stats.active },
-        { key: 'pending', label: 'Pending', count: stats.pending },
+        { key: 'pending', label: 'Belum Dikerjakan', count: stats.pending },
         { key: 'selesai', label: 'Selesai', count: stats.selesai },
     ];
 

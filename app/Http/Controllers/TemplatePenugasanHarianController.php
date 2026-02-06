@@ -159,12 +159,11 @@ class TemplatePenugasanHarianController extends Controller
         // Check if date is a holiday
         if (!($validated['skip_holiday_check'] ?? false) && HariLibur::isHoliday($targetDate)) {
             $holiday = HariLibur::getHolidayInfo($targetDate);
-            return response()->json([
-                'success' => false,
+            return redirect()->back()->with([
+                'error' => "Tanggal {$targetDate->format('d/m/Y')} adalah hari libur: {$holiday->nama}",
                 'is_holiday' => true,
                 'holiday' => $holiday,
-                'message' => "Tanggal {$targetDate->format('d/m/Y')} adalah hari libur: {$holiday->nama}",
-            ], 422);
+            ]);
         }
 
         // Get all active templates
@@ -173,10 +172,7 @@ class TemplatePenugasanHarianController extends Controller
             ->get();
 
         if ($templates->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tidak ada template aktif.',
-            ], 422);
+            return redirect()->back()->with('error', 'Tidak ada template aktif.');
         }
 
         $createdCount = 0;
@@ -211,12 +207,7 @@ class TemplatePenugasanHarianController extends Controller
             }
         });
 
-        return response()->json([
-            'success' => true,
-            'message' => "{$createdCount} penugasan berhasil dibuat dari {$templateCount} template untuk tanggal {$targetDate->format('d/m/Y')}.",
-            'count' => $createdCount,
-            'template_count' => $templateCount,
-        ]);
+        return redirect()->back()->with('success', "{$createdCount} penugasan berhasil dibuat dari {$templateCount} template untuk tanggal {$targetDate->format('d/m/Y')}.");
     }
 
     /**
@@ -235,21 +226,17 @@ class TemplatePenugasanHarianController extends Controller
         // Check if date is a holiday
         if (!($validated['skip_holiday_check'] ?? false) && HariLibur::isHoliday($targetDate)) {
             $holiday = HariLibur::getHolidayInfo($targetDate);
-            return response()->json([
-                'success' => false,
+            return redirect()->back()->with([
+                'error' => "Tanggal {$targetDate->format('d/m/Y')} adalah hari libur: {$holiday->nama}",
                 'is_holiday' => true,
                 'holiday' => $holiday,
-                'message' => "Tanggal {$targetDate->format('d/m/Y')} adalah hari libur: {$holiday->nama}",
-            ], 422);
+            ]);
         }
 
         $template = TemplatePenugasanHarian::with(['items.tugas', 'pengguna'])->findOrFail($validated['template_id']);
 
         if (!$template->aktif) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Template tidak aktif.',
-            ], 422);
+            return redirect()->back()->with('error', 'Template tidak aktif.');
         }
 
         $createdCount = 0;
@@ -277,11 +264,7 @@ class TemplatePenugasanHarianController extends Controller
             }
         });
 
-        return response()->json([
-            'success' => true,
-            'message' => "{$createdCount} penugasan berhasil dibuat untuk tanggal {$targetDate->format('d/m/Y')}.",
-            'count' => $createdCount,
-        ]);
+        return redirect()->back()->with('success', "{$createdCount} penugasan berhasil dibuat untuk tanggal {$targetDate->format('d/m/Y')}.");
     }
 
     /**

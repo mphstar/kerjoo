@@ -297,7 +297,7 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
             case 'sedang_dikerjakan':
                 return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> Dikerjakan</Badge>;
             default:
-                return <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300"><Target className="h-3 w-3" /> Pending</Badge>;
+                return <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300"><Target className="h-3 w-3" /> Belum Dikerjakan</Badge>;
         }
     };
 
@@ -382,7 +382,7 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
                             </div>
                             <div>
                                 <p className="text-2xl font-bold">{stats.pending}</p>
-                                <p className="text-xs text-muted-foreground">Pending</p>
+                                <p className="text-xs text-muted-foreground">Belum Dikerjakan</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -471,7 +471,7 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Semua Status</SelectItem>
-                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="pending">Belum Dikerjakan</SelectItem>
                             <SelectItem value="sedang_dikerjakan">Dikerjakan</SelectItem>
                             <SelectItem value="selesai">Selesai</SelectItem>
                         </SelectContent>
@@ -784,7 +784,7 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Semua Status</SelectItem>
-                                        <SelectItem value="pending">Pending</SelectItem>
+                                        <SelectItem value="pending">Belum Dikerjakan</SelectItem>
                                         <SelectItem value="sedang_dikerjakan">Aktif / Dikerjakan</SelectItem>
                                         <SelectItem value="selesai">Selesai</SelectItem>
                                     </SelectContent>

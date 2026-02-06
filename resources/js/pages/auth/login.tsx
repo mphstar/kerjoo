@@ -105,7 +105,7 @@ export default function Login({ status }: { status?: string }) {
 
                     {/* Footer */}
                     <p className="mt-8 text-center text-xs text-muted-foreground/80 dark:text-slate-600 pb-8">
-                        &copy; {new Date().getFullYear()} Logbook App. All rights reserved.
+                        &copy; {new Date().getFullYear()} Kerjoo. All rights reserved.
                     </p>
                 </div>
             </div>

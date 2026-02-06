@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Select,
     SelectContent,
@@ -33,6 +34,7 @@ export default function TugasFormDialog({ open, onOpenChange, tugas, kategoriLis
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         kategori_id: '',
         nama: '',
+        tipe: 'harian' as 'harian' | 'mingguan' | 'bulanan' | 'tahunan' | 'lainnya',
         deskripsi: '',
         persyaratan: {
             foto: true,
@@ -47,6 +49,7 @@ export default function TugasFormDialog({ open, onOpenChange, tugas, kategoriLis
             setData({
                 kategori_id: tugas.kategori_id.toString(),
                 nama: tugas.nama,
+                tipe: tugas.tipe || 'harian',
                 deskripsi: tugas.deskripsi || '',
                 persyaratan: tugas.persyaratan,
                 aktif: tugas.aktif,
@@ -130,6 +133,32 @@ export default function TugasFormDialog({ open, onOpenChange, tugas, kategoriLis
                                 onChange={(e) => setData('deskripsi', e.target.value)}
                                 placeholder="Deskripsi tugas..."
                             />
+                        </div>
+
+                        {/* Tipe Tugas */}
+                        <div className="grid gap-2">
+                            <Label>Tipe Tugas</Label>
+                            <RadioGroup
+                                value={data.tipe}
+                                onValueChange={(value) => setData('tipe', value as typeof data.tipe)}
+                                className="flex flex-wrap gap-4"
+                            >
+                                {[
+                                    { value: 'harian', label: 'Harian' },
+                                    { value: 'mingguan', label: 'Mingguan' },
+                                    { value: 'bulanan', label: 'Bulanan' },
+                                    { value: 'tahunan', label: 'Tahunan' },
+                                    { value: 'lainnya', label: 'Lainnya' },
+                                ].map((option) => (
+                                    <div key={option.value} className="flex items-center space-x-2">
+                                        <RadioGroupItem value={option.value} id={`tipe-${option.value}`} />
+                                        <Label htmlFor={`tipe-${option.value}`} className="font-normal cursor-pointer">
+                                            {option.label}
+                                        </Label>
+                                    </div>
+                                ))}
+                            </RadioGroup>
+                            {errors.tipe && <span className="text-sm text-destructive">{errors.tipe}</span>}
                         </div>
 
                         {/* Persyaratan */}

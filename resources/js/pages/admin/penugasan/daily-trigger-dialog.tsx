@@ -17,9 +17,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TemplatePenugasanHarian, HariLibur } from '@/types/logbook';
+import { router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { AlertTriangle, Calendar, Zap } from 'lucide-react';
+import { AlertTriangle, Calendar, Loader2, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Props {
@@ -61,7 +62,7 @@ export default function DailyTriggerDialog({ open, onOpenChange, onSuccess }: Pr
         }
     }, [targetDate]);
 
-    const handleTrigger = async (skipHolidayCheck: boolean = false) => {
+    const handleTrigger = (skipHolidayCheck: boolean = false) => {
         if (!selectedTemplate) {
             setError('Pilih template terlebih dahulu');
             return;
@@ -71,41 +72,40 @@ export default function DailyTriggerDialog({ open, onOpenChange, onSuccess }: Pr
         setError(null);
         setSuccess(null);
 
-        try {
-            const response = await fetch('/admin/template-harian/trigger', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        router.post(
+            '/admin/template-harian/trigger',
+            {
+                template_id: selectedTemplate,
+                tanggal: targetDate,
+                skip_holiday_check: skipHolidayCheck,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: (page) => {
+                    const flash = (page.props as { flash?: { success?: string; error?: string; is_holiday?: boolean; holiday?: HariLibur } }).flash;
+                    if (flash?.success) {
+                        setSuccess(flash.success);
+                        setTimeout(() => {
+                            onOpenChange(false);
+                            onSuccess?.();
+                        }, 1500);
+                    } else if (flash?.error) {
+                        if (flash.is_holiday) {
+                            setIsHoliday(true);
+                            setHolidayInfo(flash.holiday || null);
+                        }
+                        setError(flash.error);
+                    }
                 },
-                body: JSON.stringify({
-                    template_id: selectedTemplate,
-                    tanggal: targetDate,
-                    skip_holiday_check: skipHolidayCheck,
-                }),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                setSuccess(data.message);
-                setTimeout(() => {
-                    onOpenChange(false);
-                    onSuccess?.();
-                    window.location.reload();
-                }, 1500);
-            } else {
-                if (data.is_holiday) {
-                    setIsHoliday(true);
-                    setHolidayInfo(data.holiday);
-                }
-                setError(data.message);
+                onError: (errors) => {
+                    const errorMessage = Object.values(errors).flat().join(', ');
+                    setError(errorMessage || 'Terjadi kesalahan saat memproses trigger');
+                },
+                onFinish: () => {
+                    setProcessing(false);
+                },
             }
-        } catch (err) {
-            setError('Terjadi kesalahan saat memproses trigger');
-        } finally {
-            setProcessing(false);
-        }
+        );
     };
 
     const resetState = () => {

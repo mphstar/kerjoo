@@ -149,6 +149,7 @@ export default function TugasIndex({ tugas, kategoriList, currentKategori }: Pro
                             <tr>
                                 <th className="p-4">Nama Tugas</th>
                                 <th className="p-4">Kategori</th>
+                                <th className="p-4">Tipe</th>
                                 <th className="p-4">Persyaratan</th>
                                 <th className="p-4">Status</th>
                                 <th className="p-4 text-right">Aksi</th>
@@ -165,6 +166,11 @@ export default function TugasIndex({ tugas, kategoriList, currentKategori }: Pro
                                     </td>
                                     <td className="p-4">
                                         <Badge variant="outline">{item.kategori?.nama}</Badge>
+                                    </td>
+                                    <td className="p-4">
+                                        <Badge variant="secondary" className="capitalize">
+                                            {item.tipe || 'harian'}
+                                        </Badge>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex gap-2 flex-wrap">
@@ -226,7 +232,7 @@ export default function TugasIndex({ tugas, kategoriList, currentKategori }: Pro
                             ))}
                             {tugas.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
                                         Tidak ada tugas ditemukan.
                                     </td>
                                 </tr>

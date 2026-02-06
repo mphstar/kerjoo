@@ -50,6 +50,7 @@ export interface Tugas {
     id: number;
     kategori_id: number;
     nama: string;
+    tipe: 'harian' | 'mingguan' | 'bulanan' | 'tahunan' | 'lainnya';
     deskripsi: string | null;
     persyaratan: {
         foto: boolean;
