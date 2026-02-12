@@ -38,10 +38,12 @@ class TemplatePenugasanHarianController extends Controller
             'nama' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'aktif' => 'boolean',
+            'tipe' => 'required|string|in:harian,mingguan,bulanan,tahunan,lainnya',
             'pengguna_id' => 'required|exists:users,id',
             'tugas_ids' => 'required|array|min:1',
             'tugas_ids.*' => 'exists:tugas,id',
             'tenggat_waktu_jam' => 'nullable|string|max:5',
+            'deadline_hari_berikutnya' => 'boolean',
             'catatan' => 'nullable|string',
             'lokasi_latitude' => 'nullable|numeric',
             'lokasi_longitude' => 'nullable|numeric',
@@ -54,8 +56,10 @@ class TemplatePenugasanHarianController extends Controller
                 'nama' => $validated['nama'],
                 'deskripsi' => $validated['deskripsi'] ?? null,
                 'aktif' => $validated['aktif'] ?? true,
+                'tipe' => $validated['tipe'],
                 'pengguna_id' => $validated['pengguna_id'],
                 'tenggat_waktu_jam' => $validated['tenggat_waktu_jam'] ?? '17:00',
+                'deadline_hari_berikutnya' => $validated['deadline_hari_berikutnya'] ?? false,
                 'catatan' => $validated['catatan'] ?? null,
                 'lokasi_latitude' => $validated['lokasi_latitude'] ?? null,
                 'lokasi_longitude' => $validated['lokasi_longitude'] ?? null,
@@ -90,10 +94,12 @@ class TemplatePenugasanHarianController extends Controller
             'nama' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'aktif' => 'boolean',
+            'tipe' => 'required|string|in:harian,mingguan,bulanan,tahunan,lainnya',
             'pengguna_id' => 'required|exists:users,id',
             'tugas_ids' => 'required|array|min:1',
             'tugas_ids.*' => 'exists:tugas,id',
             'tenggat_waktu_jam' => 'nullable|string|max:5',
+            'deadline_hari_berikutnya' => 'boolean',
             'catatan' => 'nullable|string',
             'lokasi_latitude' => 'nullable|numeric',
             'lokasi_longitude' => 'nullable|numeric',
@@ -106,8 +112,10 @@ class TemplatePenugasanHarianController extends Controller
                 'nama' => $validated['nama'],
                 'deskripsi' => $validated['deskripsi'] ?? null,
                 'aktif' => $validated['aktif'] ?? true,
+                'tipe' => $validated['tipe'],
                 'pengguna_id' => $validated['pengguna_id'],
                 'tenggat_waktu_jam' => $validated['tenggat_waktu_jam'] ?? '17:00',
+                'deadline_hari_berikutnya' => $validated['deadline_hari_berikutnya'] ?? false,
                 'catatan' => $validated['catatan'] ?? null,
                 'lokasi_latitude' => $validated['lokasi_latitude'] ?? null,
                 'lokasi_longitude' => $validated['lokasi_longitude'] ?? null,
@@ -189,6 +197,11 @@ class TemplatePenugasanHarianController extends Controller
                     $deadlineTime = $template->tenggat_waktu_jam ?? '17:00';
                     $deadline = $targetDate->copy()->setTimeFromTimeString($deadlineTime . ':00');
 
+                    // Shift malam: deadline jatuh di hari berikutnya
+                    if ($template->deadline_hari_berikutnya) {
+                        $deadline->addDay();
+                    }
+
                     Penugasan::create([
                         'tugas_id' => $item->tugas_id,
                         'pengguna_id' => $template->pengguna_id,
@@ -211,12 +224,13 @@ class TemplatePenugasanHarianController extends Controller
     }
 
     /**
-     * Trigger a single template for a specific date
+     * Trigger selected templates for a specific date
      */
     public function trigger(Request $request)
     {
         $validated = $request->validate([
-            'template_id' => 'required|exists:template_penugasan_harian,id',
+            'template_ids' => 'required|array|min:1',
+            'template_ids.*' => 'exists:template_penugasan_harian,id',
             'tanggal' => 'required|date',
             'skip_holiday_check' => 'boolean',
         ]);
@@ -233,38 +247,53 @@ class TemplatePenugasanHarianController extends Controller
             ]);
         }
 
-        $template = TemplatePenugasanHarian::with(['items.tugas', 'pengguna'])->findOrFail($validated['template_id']);
+        $templates = TemplatePenugasanHarian::with(['items.tugas', 'pengguna'])
+            ->whereIn('id', $validated['template_ids'])
+            ->where('aktif', true)
+            ->get();
 
-        if (!$template->aktif) {
-            return redirect()->back()->with('error', 'Template tidak aktif.');
+        if ($templates->isEmpty()) {
+            return redirect()->back()->with('error', 'Tidak ada template aktif yang dipilih.');
         }
 
         $createdCount = 0;
+        $templateCount = 0;
 
-        DB::transaction(function () use ($template, $targetDate, &$createdCount) {
-            foreach ($template->items as $item) {
-                // Build deadline datetime
-                $deadlineTime = $template->tenggat_waktu_jam ?? '17:00';
-                $deadline = $targetDate->copy()->setTimeFromTimeString($deadlineTime . ':00');
+        DB::transaction(function () use ($templates, $targetDate, &$createdCount, &$templateCount) {
+            foreach ($templates as $template) {
+                if ($template->items->isEmpty()) continue;
 
-                Penugasan::create([
-                    'tugas_id' => $item->tugas_id,
-                    'pengguna_id' => $template->pengguna_id,
-                    'ditugaskan_oleh' => auth()->id(),
-                    'status' => 'pending',
-                    'tenggat_waktu' => $deadline,
-                    'catatan' => $template->catatan,
-                    'lokasi_latitude' => $template->lokasi_latitude,
-                    'lokasi_longitude' => $template->lokasi_longitude,
-                    'lokasi_radius' => $template->lokasi_radius,
-                    'lokasi_nama' => $template->lokasi_nama,
-                ]);
+                $templateCount++;
 
-                $createdCount++;
+                foreach ($template->items as $item) {
+                    // Build deadline datetime
+                    $deadlineTime = $template->tenggat_waktu_jam ?? '17:00';
+                    $deadline = $targetDate->copy()->setTimeFromTimeString($deadlineTime . ':00');
+
+                    // Shift malam: deadline jatuh di hari berikutnya
+                    if ($template->deadline_hari_berikutnya) {
+                        $deadline->addDay();
+                    }
+
+                    Penugasan::create([
+                        'tugas_id' => $item->tugas_id,
+                        'pengguna_id' => $template->pengguna_id,
+                        'ditugaskan_oleh' => auth()->id(),
+                        'status' => 'pending',
+                        'tenggat_waktu' => $deadline,
+                        'catatan' => $template->catatan,
+                        'lokasi_latitude' => $template->lokasi_latitude,
+                        'lokasi_longitude' => $template->lokasi_longitude,
+                        'lokasi_radius' => $template->lokasi_radius,
+                        'lokasi_nama' => $template->lokasi_nama,
+                    ]);
+
+                    $createdCount++;
+                }
             }
         });
 
-        return redirect()->back()->with('success', "{$createdCount} penugasan berhasil dibuat untuk tanggal {$targetDate->format('d/m/Y')}.");
+        return redirect()->back()->with('success', "{$createdCount} penugasan berhasil dibuat dari {$templateCount} template untuk tanggal {$targetDate->format('d/m/Y')}.");
     }
 
     /**

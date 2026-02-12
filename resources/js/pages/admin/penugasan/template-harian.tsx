@@ -30,14 +30,30 @@ import { TemplatePenugasanHarian, Tugas, User } from '@/types/logbook';
 import { Head, router, useForm } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { AlertTriangle, Edit, Plus, Trash2, Copy, MapPin, Navigation, Loader2, CalendarIcon, Play, Users } from 'lucide-react';
+import { AlertTriangle, Edit, Plus, Trash2, Copy, MapPin, Navigation, Loader2, CalendarIcon, Play, Users, Moon } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import LocationMap from '@/components/location-map';
+
+const TIPE_OPTIONS = [
+    { value: 'harian', label: 'Harian' },
+    { value: 'mingguan', label: 'Mingguan' },
+    { value: 'bulanan', label: 'Bulanan' },
+    { value: 'tahunan', label: 'Tahunan' },
+    { value: 'lainnya', label: 'Lainnya' },
+];
+
+const TIPE_COLORS: Record<string, string> = {
+    harian: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+    mingguan: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
+    bulanan: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
+    tahunan: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+    lainnya: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
     { title: 'Penugasan', href: '/admin/penugasan' },
-    { title: 'Template Harian', href: '/admin/template-harian' },
+    { title: 'Template Penugasan', href: '/admin/template-harian' },
 ];
 
 interface Props {
@@ -68,9 +84,11 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
         nama: '',
         deskripsi: '',
         aktif: true,
+        tipe: 'harian' as string,
         pengguna_id: '',
         tugas_ids: [] as string[],
         tenggat_waktu_jam: '17:00',
+        deadline_hari_berikutnya: false,
         catatan: '',
         lokasi_latitude: '',
         lokasi_longitude: '',
@@ -188,9 +206,11 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
             nama: item.nama,
             deskripsi: item.deskripsi || '',
             aktif: item.aktif,
+            tipe: item.tipe || 'harian',
             pengguna_id: item.pengguna_id?.toString() || '',
             tugas_ids: item.items?.map(i => i.tugas_id.toString()) || [],
             tenggat_waktu_jam: item.tenggat_waktu_jam || '17:00',
+            deadline_hari_berikutnya: item.deadline_hari_berikutnya || false,
             catatan: item.catatan || '',
             lokasi_latitude: item.lokasi_latitude?.toString() || '',
             lokasi_longitude: item.lokasi_longitude?.toString() || '',
@@ -283,14 +303,14 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Template Penugasan Harian" />
+            <Head title="Template Penugasan" />
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold">Template Penugasan Harian</h1>
+                        <h1 className="text-2xl font-bold">Template Penugasan</h1>
                         <p className="text-muted-foreground">
-                            Atur template untuk penugasan rutin/harian per pelaksana
+                            Atur template untuk penugasan rutin per pelaksana
                         </p>
                     </div>
                     <div className="flex gap-2">
@@ -310,58 +330,99 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {templates.data.map((template) => (
-                        <Card key={template.id} className={!template.aktif ? 'opacity-75' : ''}>
-                            <CardHeader className="pb-3">
-                                <div className="flex justify-between items-start">
-                                    <CardTitle className="text-lg font-bold">{template.nama}</CardTitle>
-                                    <div className="flex gap-1">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(template)}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteTemplate(template.id)}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                    {templates.data.map((template) => {
+                        const tipeColor = TIPE_COLORS[template.tipe] || TIPE_COLORS.lainnya;
+                        const tipeAccent: Record<string, string> = {
+                            harian: 'from-blue-500 to-blue-600',
+                            mingguan: 'from-emerald-500 to-emerald-600',
+                            bulanan: 'from-amber-500 to-amber-600',
+                            tahunan: 'from-purple-500 to-purple-600',
+                            lainnya: 'from-gray-400 to-gray-500',
+                        };
+                        return (
+                            <Card key={template.id} className={`overflow-hidden transition-all hover:shadow-md ${!template.aktif ? 'opacity-60 grayscale-[30%]' : ''}`}>
+                                {/* Color accent strip */}
+                                <div className={`h-1.5 bg-gradient-to-r ${tipeAccent[template.tipe] || tipeAccent.lainnya}`} />
+
+                                <CardHeader className="pb-2 pt-4">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${tipeColor}`}>
+                                                    {TIPE_OPTIONS.find(t => t.value === template.tipe)?.label || template.tipe}
+                                                </span>
+                                                {template.deadline_hari_berikutnya && (
+                                                    <span className="inline-flex items-center gap-0.5 rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">
+                                                        <Moon className="h-2.5 w-2.5" />
+                                                        Shift Malam
+                                                    </span>
+                                                )}
+                                                {!template.aktif && (
+                                                    <span className="inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-900 dark:text-red-300">
+                                                        Nonaktif
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <CardTitle className="text-base font-semibold leading-tight truncate">{template.nama}</CardTitle>
+                                        </div>
+                                        <div className="flex gap-0.5 shrink-0">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleEdit(template)}>
+                                                <Edit className="h-3.5 w-3.5" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteTemplate(template.id)}>
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </div>
                                     </div>
-                                </div>
-                                <CardDescription className="line-clamp-2 min-h-[2.5rem]">
-                                    {template.deskripsi || 'Tidak ada deskripsi'}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between py-1 border-b">
-                                        <span className="text-muted-foreground">Pelaksana</span>
-                                        <span className="font-medium">{template.pengguna?.name || '-'}</span>
+                                    {template.deskripsi && (
+                                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{template.deskripsi}</p>
+                                    )}
+                                </CardHeader>
+
+                                <CardContent className="pb-4">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
+                                            <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Pelaksana</p>
+                                                <p className="text-xs font-medium truncate">{template.pengguna?.name || '-'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
+                                            <Copy className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                            <div>
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tugas</p>
+                                                <p className="text-xs font-medium">{template.items?.length || 0} item</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
+                                            <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                            <div>
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Deadline</p>
+                                                <p className="text-xs font-medium">
+                                                    {template.tenggat_waktu_jam || '17:00'}
+                                                    {template.deadline_hari_berikutnya ? ' (H+1)' : ''}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
+                                            <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                            <div>
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Dibuat</p>
+                                                <p className="text-xs font-medium">{format(new Date(template.created_at), 'd MMM yy', { locale: id })}</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between py-1 border-b">
-                                        <span className="text-muted-foreground">Jumlah Tugas</span>
-                                        <span className="font-medium">{template.items?.length || 0} Tugas</span>
-                                    </div>
-                                    <div className="flex justify-between py-1 border-b">
-                                        <span className="text-muted-foreground">Deadline</span>
-                                        <span className="font-medium">{template.tenggat_waktu_jam || '17:00'}</span>
-                                    </div>
-                                    <div className="flex justify-between py-1 border-b">
-                                        <span className="text-muted-foreground">Status</span>
-                                        <span className={template.aktif ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
-                                            {template.aktif ? 'Aktif' : 'Tidak Aktif'}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between py-1">
-                                        <span className="text-muted-foreground">Dibuat</span>
-                                        <span>{format(new Date(template.created_at), 'd MMM yyyy', { locale: id })}</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
 
                     {templates.data.length === 0 && (
                         <div className="col-span-full flex flex-col items-center justify-center p-12 text-center border-2 border-dashed rounded-lg text-muted-foreground">
                             <Copy className="h-12 w-12 mb-4 opacity-50" />
                             <h3 className="text-lg font-medium">Belum ada template</h3>
-                            <p>Buat template pertama Anda untuk memulai trigger harian.</p>
+                            <p>Buat template pertama Anda untuk memulai trigger penugasan.</p>
                         </div>
                     )}
                 </div>
@@ -387,10 +448,28 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
                                         id="nama"
                                         value={data.nama}
                                         onChange={e => setData('nama', e.target.value)}
-                                        placeholder="Misal: Template Harian - Ahmad"
+                                        placeholder="Misal: Template - Ahmad"
                                         required
                                     />
                                     {errors.nama && <span className="text-sm text-destructive">{errors.nama}</span>}
+                                </div>
+
+                                {/* Tipe Penugasan */}
+                                <div className="grid gap-2">
+                                    <Label>Tipe Penugasan</Label>
+                                    <Select value={data.tipe} onValueChange={v => setData('tipe', v)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Pilih tipe" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {TIPE_OPTIONS.map(opt => (
+                                                <SelectItem key={opt.value} value={opt.value}>
+                                                    {opt.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.tipe && <span className="text-sm text-destructive">{errors.tipe}</span>}
                                 </div>
 
                                 <div className="grid gap-2">
@@ -475,6 +554,24 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
                                         type="time"
                                         value={data.tenggat_waktu_jam}
                                         onChange={e => setData('tenggat_waktu_jam', e.target.value)}
+                                    />
+                                </div>
+
+                                {/* Shift Malam Toggle */}
+                                <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+                                    <div className="space-y-0.5">
+                                        <Label htmlFor="deadline_hari_berikutnya" className="flex items-center gap-2">
+                                            <Moon className="h-4 w-4" />
+                                            Shift Malam
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Deadline jatuh di hari berikutnya (H+1)
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="deadline_hari_berikutnya"
+                                        checked={data.deadline_hari_berikutnya}
+                                        onCheckedChange={checked => setData('deadline_hari_berikutnya', checked)}
                                     />
                                 </div>
 

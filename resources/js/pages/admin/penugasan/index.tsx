@@ -99,7 +99,7 @@ export default function PenugasanIndex({
                     <div className="flex gap-2">
                         <Button variant="secondary" onClick={() => setIsTriggerDialogOpen(true)}>
                             <Zap className="mr-2 h-4 w-4" />
-                            Trigger Harian
+                            Trigger Penugasan
                         </Button>
                         <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
                             <Plus className="mr-2 h-4 w-4" />

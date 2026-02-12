@@ -14,8 +14,10 @@ class TemplatePenugasanHarian extends Model
         'nama',
         'deskripsi',
         'aktif',
+        'tipe',
         'pengguna_id',
         'tenggat_waktu_jam',
+        'deadline_hari_berikutnya',
         'catatan',
         'lokasi_latitude',
         'lokasi_longitude',
@@ -25,6 +27,7 @@ class TemplatePenugasanHarian extends Model
 
     protected $casts = [
         'aktif' => 'boolean',
+        'deadline_hari_berikutnya' => 'boolean',
         'lokasi_latitude' => 'decimal:8',
         'lokasi_longitude' => 'decimal:8',
         'lokasi_radius' => 'integer',

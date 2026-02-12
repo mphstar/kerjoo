@@ -41,7 +41,7 @@ const masterNavItems: NavItem[] = [
         icon: Calendar,
     },
     {
-        title: 'Template Harian',
+        title: 'Template Penugasan',
         href: '/admin/template-harian',
         icon: ClipboardList,
     },

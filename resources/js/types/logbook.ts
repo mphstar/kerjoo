@@ -149,8 +149,10 @@ export interface TemplatePenugasanHarian {
     nama: string;
     deskripsi: string | null;
     aktif: boolean;
+    tipe: 'harian' | 'mingguan' | 'bulanan' | 'tahunan' | 'lainnya';
     pengguna_id: number;
     tenggat_waktu_jam: string;
+    deadline_hari_berikutnya: boolean;
     catatan: string | null;
     lokasi_latitude: number | null;
     lokasi_longitude: number | null;
