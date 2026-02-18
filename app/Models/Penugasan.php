@@ -71,6 +71,14 @@ class Penugasan extends Model
     }
 
     /**
+     * Get all comments for this assignment
+     */
+    public function komentar(): HasMany
+    {
+        return $this->hasMany(KomentarPenugasan::class, 'penugasan_id');
+    }
+
+    /**
      * Get persyaratan from parent tugas
      */
     public function getPersyaratan(): array

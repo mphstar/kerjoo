@@ -3,19 +3,39 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { type ItemPenugasan, type Penugasan } from '@/types/logbook';
-import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Calendar, CheckCircle, Clock, FileText, User as UserIcon, X, Image as ImageIcon, Timer, ClipboardList } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { Textarea } from '@/components/ui/textarea';
+import { type ItemPenugasan, type KomentarPenugasan, type Penugasan } from '@/types/logbook';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { ArrowLeft, Calendar, CheckCircle, Clock, FileText, User as UserIcon, X, Image as ImageIcon, Timer, ClipboardList, MessageCircle, Send, Trash2, Loader2 } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 
 interface Props {
     penugasan: Penugasan & { items: ItemPenugasan[] };
 }
 
 export default function AdminPenugasanDetail({ penugasan }: Props) {
+    const { auth } = usePage<{ auth: { user: { id: number } } }>().props;
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [komentarIsi, setKomentarIsi] = useState('');
+    const [isSending, setIsSending] = useState(false);
+    const [deleteKomentarId, setDeleteKomentarId] = useState<number | null>(null);
+    const komentarEndRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        komentarEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [penugasan.komentar]);
 
     const formatTime = (seconds: number | null | undefined) => {
         const safeSeconds = Math.max(0, seconds || 0);
@@ -343,6 +363,101 @@ export default function AdminPenugasanDetail({ penugasan }: Props) {
                         })}
                     </div>
                 </div>
+
+                {/* Komentar Section */}
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                            <MessageCircle className="h-4 w-4" />
+                            Komentar ({penugasan.komentar?.length || 0})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {/* Comment List */}
+                        <div className="max-h-[400px] overflow-y-auto space-y-3 pr-1">
+                            {(!penugasan.komentar || penugasan.komentar.length === 0) && (
+                                <div className="text-center py-6 text-muted-foreground text-sm">
+                                    Belum ada komentar. Mulai percakapan dengan pelaksana.
+                                </div>
+                            )}
+                            {penugasan.komentar?.map((komentar) => {
+                                const isOwn = komentar.pengguna_id === auth.user.id;
+                                const isAdmin = komentar.pengguna?.peran === 'admin';
+                                return (
+                                    <div key={komentar.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                                        <div className={`flex gap-2 max-w-[80%] ${isOwn ? 'flex-row-reverse' : ''}`}>
+                                            <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isAdmin
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'bg-muted text-muted-foreground'
+                                                }`}>
+                                                {komentar.pengguna?.name?.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div className={`rounded-2xl px-4 py-2 ${isOwn
+                                                    ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                                                    : 'bg-muted rounded-tl-sm'
+                                                    }`}>
+                                                    <p className="text-sm whitespace-pre-wrap">{komentar.isi}</p>
+                                                </div>
+                                                <div className={`flex items-center gap-2 mt-1 ${isOwn ? 'justify-end' : ''}`}>
+                                                    <span className="text-[10px] text-muted-foreground">
+                                                        {komentar.pengguna?.name} · {new Date(komentar.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                    {isOwn && (
+                                                        <button
+                                                            onClick={() => setDeleteKomentarId(komentar.id)}
+                                                            className="text-muted-foreground hover:text-destructive transition-colors"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            <div ref={komentarEndRef} />
+                        </div>
+
+                        {/* Comment Input */}
+                        <div className="flex gap-2 pt-2 border-t">
+                            <Textarea
+                                value={komentarIsi}
+                                onChange={(e) => setKomentarIsi(e.target.value)}
+                                placeholder="Tulis komentar..."
+                                className="min-h-[44px] max-h-[120px] resize-none"
+                                rows={1}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        if (komentarIsi.trim() && !isSending) {
+                                            setIsSending(true);
+                                            router.post(`/admin/penugasan/${penugasan.id}/komentar`, { isi: komentarIsi.trim() }, {
+                                                onSuccess: () => setKomentarIsi(''),
+                                                onFinish: () => setIsSending(false),
+                                            });
+                                        }
+                                    }
+                                }}
+                            />
+                            <Button
+                                size="icon"
+                                disabled={!komentarIsi.trim() || isSending}
+                                onClick={() => {
+                                    setIsSending(true);
+                                    router.post(`/admin/penugasan/${penugasan.id}/komentar`, { isi: komentarIsi.trim() }, {
+                                        onSuccess: () => setKomentarIsi(''),
+                                        onFinish: () => setIsSending(false),
+                                    });
+                                }}
+                                className="shrink-0"
+                            >
+                                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Fullscreen Image Dialog */}
@@ -363,6 +478,32 @@ export default function AdminPenugasanDetail({ penugasan }: Props) {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Delete Komentar Confirmation */}
+            <AlertDialog open={deleteKomentarId !== null} onOpenChange={(open) => !open && setDeleteKomentarId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus Komentar?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Komentar yang dihapus tidak dapat dikembalikan.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-white hover:bg-destructive/90"
+                            onClick={() => {
+                                if (deleteKomentarId) {
+                                    router.delete(`/admin/penugasan/komentar/${deleteKomentarId}`);
+                                    setDeleteKomentarId(null);
+                                }
+                            }}
+                        >
+                            Hapus
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </AppLayout>
     );
 }

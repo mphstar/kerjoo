@@ -181,7 +181,7 @@ class PenugasanController extends Controller
      */
     public function show($id)
     {
-        $penugasan = Penugasan::with(['tugas.kategori', 'pengguna', 'items', 'ditugaskanOleh'])
+        $penugasan = Penugasan::with(['tugas.kategori', 'pengguna', 'items', 'ditugaskanOleh', 'komentar.pengguna'])
             ->findOrFail($id);
 
         return inertia('admin/penugasan/detail', [

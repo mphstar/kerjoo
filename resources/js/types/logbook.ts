@@ -84,6 +84,7 @@ export interface Penugasan {
     pengguna?: User;
     ditugaskan_oleh_user?: User;
     items?: ItemPenugasan[];
+    komentar?: KomentarPenugasan[];
 }
 
 export interface ItemPenugasan {
@@ -107,6 +108,16 @@ export interface ItemPenugasan {
     foto_sebelum_url?: string;
     foto_sesudah_url?: string;
     file_lampiran_url?: string;
+}
+
+export interface KomentarPenugasan {
+    id: number;
+    penugasan_id: number;
+    pengguna_id: number;
+    isi: string;
+    created_at: string;
+    updated_at: string;
+    pengguna?: User;
 }
 
 export interface PermintaanPeralatan {

@@ -5,6 +5,7 @@ use App\Http\Controllers\BidangController;
 use App\Http\Controllers\HariLiburController;
 use App\Http\Controllers\ItemPenugasanController;
 use App\Http\Controllers\KategoriController;
+use App\Http\Controllers\KomentarPenugasanController;
 use App\Http\Controllers\PenugasanController;
 use App\Http\Controllers\TemplatePenugasanHarianController;
 use App\Http\Controllers\TugasController;
@@ -421,6 +422,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('penugasan/{id}/status', [PenugasanController::class, 'updateStatus'])->name('penugasan.updateStatus');
         Route::delete('penugasan/{id}', [PenugasanController::class, 'destroy'])->name('penugasan.destroy');
 
+        // Komentar Penugasan (Admin)
+        Route::post('penugasan/{id}/komentar', [KomentarPenugasanController::class, 'store'])->name('penugasan.komentar.store');
+        Route::delete('penugasan/komentar/{id}', [KomentarPenugasanController::class, 'destroy'])->name('penugasan.komentar.destroy');
+
         // Hari Libur (Holiday Management)
         Route::get('hari-libur', [HariLiburController::class, 'index'])->name('hari-libur.index');
         Route::post('hari-libur', [HariLiburController::class, 'store'])->name('hari-libur.store');
@@ -581,7 +586,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         })->name('pelaksana.tugas.index');
 
         Route::get('tugas/{id}', function ($id) {
-            $penugasan = \App\Models\Penugasan::with('tugas.kategori')->findOrFail($id);
+            $penugasan = \App\Models\Penugasan::with(['tugas.kategori', 'komentar.pengguna'])->findOrFail($id);
             return Inertia::render('pelaksana/tugas/detail', [
                 'penugasan' => $penugasan,
                 'items' => \App\Models\ItemPenugasan::where('penugasan_id', $id)->get()
@@ -593,6 +598,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('tugas/{id}/items/{itemId}/start', [ItemPenugasanController::class, 'startTimer'])->name('pelaksana.item.start');
         Route::post('tugas/{id}/items/{itemId}/stop', [ItemPenugasanController::class, 'stopTimer'])->name('pelaksana.item.stop');
         Route::delete('tugas/{id}/items/{itemId}', [ItemPenugasanController::class, 'destroy'])->name('pelaksana.item.destroy');
+
+        // Komentar Penugasan (Pelaksana)
+        Route::post('tugas/{id}/komentar', [KomentarPenugasanController::class, 'store'])->name('pelaksana.komentar.store');
+        Route::delete('tugas/komentar/{id}', [KomentarPenugasanController::class, 'destroy'])->name('pelaksana.komentar.destroy');
 
         // Permintaan Peralatan
         Route::get('peralatan', function () {

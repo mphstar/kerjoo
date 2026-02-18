@@ -20,9 +20,9 @@ import DeadlineStatus, { formatDeadlineDateTime } from '@/components/deadline-st
 import MobileLayout from '@/layouts/mobile-layout';
 import { useTimerStore } from '@/stores/timer-store';
 import { useGeolocation } from '@/hooks/use-geolocation';
-import { type ItemPenugasan, type Penugasan } from '@/types/logbook';
+import { type ItemPenugasan, type KomentarPenugasan, type Penugasan } from '@/types/logbook';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Clock, FileText, Pause, Play, ArrowLeft, CheckCircle, X, Loader2, Calendar, AlertTriangle, MapPin, Navigation, MapPinOff, Trash2 } from 'lucide-react';
+import { Clock, FileText, Pause, Play, ArrowLeft, CheckCircle, X, Loader2, Calendar, AlertTriangle, MapPin, Navigation, MapPinOff, Trash2, MessageCircle, Send } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 
 interface Props {
@@ -31,11 +31,20 @@ interface Props {
 }
 
 export default function TugasDetail({ penugasan, items }: Props) {
-    const { url } = usePage();
+    const page = usePage<{ auth: { user: { id: number } } }>();
+    const currentUserId = page.props.auth.user.id;
     const [alertOpen, setAlertOpen] = useState(false);
     const [alertDetails, setAlertDetails] = useState({ title: '', message: '' });
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [komentarIsi, setKomentarIsi] = useState('');
+    const [isSendingKomentar, setIsSendingKomentar] = useState(false);
+    const [deleteKomentarId, setDeleteKomentarId] = useState<number | null>(null);
+    const komentarEndRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        komentarEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [penugasan.komentar]);
 
     const showAlert = (title: string, message: string) => {
         setAlertDetails({ title, message });
@@ -176,6 +185,99 @@ export default function TugasDetail({ penugasan, items }: Props) {
                         )}
                     </div>
 
+                    {/* Komentar Section */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base flex items-center gap-2">
+                                <MessageCircle className="h-4 w-4" />
+                                Komentar ({penugasan.komentar?.length || 0})
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <div className="max-h-[350px] overflow-y-auto space-y-3 pr-1">
+                                {(!penugasan.komentar || penugasan.komentar.length === 0) && (
+                                    <div className="text-center py-6 text-muted-foreground text-sm">
+                                        Belum ada komentar.
+                                    </div>
+                                )}
+                                {penugasan.komentar?.map((komentar) => {
+                                    const isOwn = komentar.pengguna_id === currentUserId;
+                                    const isAdmin = komentar.pengguna?.peran === 'admin';
+                                    return (
+                                        <div key={komentar.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`flex gap-2 max-w-[85%] ${isOwn ? 'flex-row-reverse' : ''}`}>
+                                                <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isAdmin
+                                                    ? 'bg-primary text-primary-foreground'
+                                                    : 'bg-muted text-muted-foreground'
+                                                    }`}>
+                                                    {komentar.pengguna?.name?.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <div className={`rounded-2xl px-3 py-2 ${isOwn
+                                                        ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                                                        : 'bg-muted rounded-tl-sm'
+                                                        }`}>
+                                                        <p className="text-sm whitespace-pre-wrap">{komentar.isi}</p>
+                                                    </div>
+                                                    <div className={`flex items-center gap-2 mt-0.5 ${isOwn ? 'justify-end' : ''}`}>
+                                                        <span className="text-[10px] text-muted-foreground">
+                                                            {komentar.pengguna?.name} · {new Date(komentar.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                        {isOwn && (
+                                                            <button
+                                                                onClick={() => setDeleteKomentarId(komentar.id)}
+                                                                className="text-muted-foreground hover:text-destructive transition-colors"
+                                                            >
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                <div ref={komentarEndRef} />
+                            </div>
+
+                            <div className="flex gap-2 pt-2 border-t">
+                                <Textarea
+                                    value={komentarIsi}
+                                    onChange={(e) => setKomentarIsi(e.target.value)}
+                                    placeholder="Tulis komentar..."
+                                    className="min-h-[40px] max-h-[100px] resize-none text-sm"
+                                    rows={1}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            if (komentarIsi.trim() && !isSendingKomentar) {
+                                                setIsSendingKomentar(true);
+                                                router.post(`/pelaksana/tugas/${penugasan.id}/komentar`, { isi: komentarIsi.trim() }, {
+                                                    onSuccess: () => setKomentarIsi(''),
+                                                    onFinish: () => setIsSendingKomentar(false),
+                                                });
+                                            }
+                                        }
+                                    }}
+                                />
+                                <Button
+                                    size="icon"
+                                    disabled={!komentarIsi.trim() || isSendingKomentar}
+                                    onClick={() => {
+                                        setIsSendingKomentar(true);
+                                        router.post(`/pelaksana/tugas/${penugasan.id}/komentar`, { isi: komentarIsi.trim() }, {
+                                            onSuccess: () => setKomentarIsi(''),
+                                            onFinish: () => setIsSendingKomentar(false),
+                                        });
+                                    }}
+                                    className="shrink-0"
+                                >
+                                    {isSendingKomentar ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     {penugasan.status !== 'selesai' && (
                         <div className="flex justify-end gap-4 mt-4">
                             <Button
@@ -237,6 +339,32 @@ export default function TugasDetail({ penugasan, items }: Props) {
                         <AlertDialogAction onClick={handleSubmitTask} disabled={isLoading}>
                             {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                             Ya, Selesaikan
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Delete Komentar Confirmation */}
+            <AlertDialog open={deleteKomentarId !== null} onOpenChange={(open) => !open && setDeleteKomentarId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus Komentar?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Komentar yang dihapus tidak dapat dikembalikan.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-white hover:bg-destructive/90"
+                            onClick={() => {
+                                if (deleteKomentarId) {
+                                    router.delete(`/pelaksana/tugas/komentar/${deleteKomentarId}`);
+                                    setDeleteKomentarId(null);
+                                }
+                            }}
+                        >
+                            Hapus
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
