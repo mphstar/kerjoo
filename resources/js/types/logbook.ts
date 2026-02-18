@@ -164,6 +164,18 @@ export interface TemplatePenugasanHarian {
     items?: TemplatePenugasanHarianItem[];
 }
 
+export interface Absensi {
+    id: number;
+    pengguna_id: number;
+    foto: string;
+    keterangan: string;
+    tanggal: string;
+    created_at: string;
+    updated_at: string;
+    foto_url?: string;
+    pengguna?: User;
+}
+
 export interface TemplatePenugasanHarianItem {
     id: number;
     template_id: number;

@@ -5,6 +5,12 @@ import TableInfo from '@/components/table-info';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -13,8 +19,8 @@ import {
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { type Kategori, type User } from '@/types/logbook';
-import { Head, router } from '@inertiajs/react';
-import { Edit, Plus, Trash2, UserIcon } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Camera, Edit, Plus, Trash2, UserIcon } from 'lucide-react';
 import { useState } from 'react';
 import UserFormDialog from './form-dialog';
 
@@ -190,17 +196,53 @@ export default function UsersIndex({ users, kategori }: Props) {
                                         )}
                                     </td>
                                     <td className="p-4 text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-destructive"
-                                            onClick={() => handleDelete(item.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        <div className="flex items-center justify-end gap-1">
+                                            {item.peran === 'pelaksana' && (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button variant="ghost" size="icon" asChild>
+                                                                <Link href={`/admin/users/${item.id}/absensi`}>
+                                                                    <Camera className="h-4 w-4" />
+                                                                </Link>
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Lihat Absensi</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Edit Pengguna</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="text-destructive"
+                                                            onClick={() => handleDelete(item.id)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Hapus Pengguna</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

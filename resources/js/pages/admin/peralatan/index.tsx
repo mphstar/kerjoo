@@ -5,6 +5,12 @@ import TableInfo from '@/components/table-info';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -176,32 +182,57 @@ export default function PeralatanIndex({ permintaan }: Props) {
                                     </td>
                                     <td className="p-4">{getStatusBadge(item.status)}</td>
                                     <td className="p-4 text-right">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleViewDetail(item)}
-                                            title="Lihat Detail"
-                                        >
-                                            <Eye className="h-4 w-4" />
-                                        </Button>
-                                        <a href={`/permintaan-peralatan/${item.id}/export-pdf`} target="_blank" rel="noreferrer">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                title="Export PDF"
-                                            >
-                                                <FileDown className="h-4 w-4" />
-                                            </Button>
-                                        </a>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-destructive"
-                                            onClick={() => handleDelete(item.id)}
-                                            title="Hapus"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleViewDetail(item)}
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Lihat Detail</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        asChild
+                                                    >
+                                                        <a href={`/permintaan-peralatan/${item.id}/export-pdf`} target="_blank" rel="noreferrer">
+                                                            <FileDown className="h-4 w-4" />
+                                                        </a>
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Export PDF</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="text-destructive"
+                                                        onClick={() => handleDelete(item.id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Hapus Permintaan</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </td>
                                 </tr>
                             ))}

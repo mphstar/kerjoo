@@ -90,6 +90,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get attendance records
+     */
+    public function absensi(): HasMany
+    {
+        return $this->hasMany(Absensi::class, 'pengguna_id');
+    }
+
+    /**
      * Check if user is admin
      */
     public function isAdmin(): bool

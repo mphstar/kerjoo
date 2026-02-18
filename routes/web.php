@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AbsensiController;
 use App\Http\Controllers\BidangController;
 use App\Http\Controllers\HariLiburController;
 use App\Http\Controllers\ItemPenugasanController;
@@ -111,6 +112,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         }
 
         return Inertia::render('pelaksana/dashboard', [
+            'user' => Auth::user(),
             'performance' => [
                 'completed' => $completedTasks,
                 'inProgress' => \App\Models\Penugasan::where('pengguna_id', Auth::id())
@@ -140,7 +142,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     $q->whereDate('tenggat_waktu', now())
                         ->orWhereNull('tenggat_waktu');
                 })
-                ->count()
+                ->count(),
+            'todayAbsensi' => \App\Models\Absensi::where('pengguna_id', Auth::id())
+                ->whereDate('tanggal', now()->toDateString())
+                ->count(),
         ]);
     })->name('dashboard');
 
@@ -167,6 +172,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('users', [App\Http\Controllers\UserController::class, 'store'])->name('users.store');
         Route::put('users/{id}', [App\Http\Controllers\UserController::class, 'update'])->name('users.update');
         Route::delete('users/{id}', [App\Http\Controllers\UserController::class, 'destroy'])->name('users.destroy');
+
+        // Absensi per user (Admin view)
+        Route::get('users/{id}/absensi', function (\Illuminate\Http\Request $request, $id) {
+            $user = \App\Models\User::findOrFail($id);
+
+            $query = \App\Models\Absensi::where('pengguna_id', $id);
+
+            if ($request->has('date_from') && $request->date_from) {
+                $query->whereDate('tanggal', '>=', $request->date_from);
+            }
+            if ($request->has('date_to') && $request->date_to) {
+                $query->whereDate('tanggal', '<=', $request->date_to);
+            }
+
+            return Inertia::render('admin/users/absensi', [
+                'user' => $user,
+                'absensi' => $query->orderByDesc('tanggal')->orderByDesc('created_at')->get(),
+                'filters' => [
+                    'date_from' => $request->date_from,
+                    'date_to' => $request->date_to,
+                ]
+            ]);
+        })->name('users.absensi');
 
         // Master Bidang
         Route::get('bidang', function (\Illuminate\Http\Request $request) {
@@ -578,6 +606,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('peralatan', [App\Http\Controllers\PermintaanPeralatanController::class, 'store'])->name('pelaksana.peralatan.store');
         Route::delete('peralatan/{id}', [App\Http\Controllers\PermintaanPeralatanController::class, 'destroy'])->name('pelaksana.peralatan.destroy');
+
+        // Absensi
+        Route::get('absensi', function (\Illuminate\Http\Request $request) {
+            $query = \App\Models\Absensi::where('pengguna_id', Auth::id());
+
+            if ($request->has('date_from') && $request->date_from) {
+                $query->whereDate('tanggal', '>=', $request->date_from);
+            }
+            if ($request->has('date_to') && $request->date_to) {
+                $query->whereDate('tanggal', '<=', $request->date_to);
+            }
+
+            return Inertia::render('pelaksana/absensi/index', [
+                'absensi' => $query->orderByDesc('tanggal')->orderByDesc('created_at')->get(),
+                'todayAbsensi' => \App\Models\Absensi::where('pengguna_id', Auth::id())
+                    ->whereDate('tanggal', now()->toDateString())
+                    ->orderByDesc('created_at')
+                    ->get(),
+                'filters' => [
+                    'date_from' => $request->date_from,
+                    'date_to' => $request->date_to,
+                ]
+            ]);
+        })->name('pelaksana.absensi.index');
+
+        Route::post('absensi', [AbsensiController::class, 'store'])->name('pelaksana.absensi.store');
+        Route::delete('absensi/{id}', [AbsensiController::class, 'destroy'])->name('pelaksana.absensi.destroy');
 
         // Profil
         Route::get('profil', function () {

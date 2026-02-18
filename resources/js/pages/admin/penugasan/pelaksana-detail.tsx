@@ -3,6 +3,12 @@ import LocationMap from '@/components/location-map';
 import { DeadlineStatusCompact } from '@/components/deadline-status';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -544,22 +550,40 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
                                                         </td>
                                                         <td className="p-3 text-right">
                                                             <div className="flex justify-end gap-1">
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-7 w-7"
-                                                                    onClick={() => router.get(`/admin/penugasan/${item.id}`)}
-                                                                >
-                                                                    <Eye className="h-3.5 w-3.5" />
-                                                                </Button>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-7 w-7 text-destructive"
-                                                                    onClick={() => handleDelete(item.id)}
-                                                                >
-                                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                                </Button>
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-7 w-7"
+                                                                                onClick={() => router.get(`/admin/penugasan/${item.id}`)}
+                                                                            >
+                                                                                <Eye className="h-3.5 w-3.5" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Lihat Detail Penugasan</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-7 w-7 text-destructive"
+                                                                                onClick={() => handleDelete(item.id)}
+                                                                            >
+                                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Hapus Penugasan</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
                                                             </div>
                                                         </td>
                                                     </tr>

@@ -8,8 +8,9 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import {
-    Activity, Calendar, CheckCircle2, Clock, ListChecks, ChevronRight,
-    TrendingUp, Target, ArrowRight, AlertTriangle, Play, Timer, Folder
+    Activity, Calendar, Camera, CheckCircle2, Clock, ListChecks, ChevronRight,
+    TrendingUp, Target, ArrowRight, AlertTriangle, Play, Timer, Folder,
+    Wrench, User
 } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -30,9 +31,10 @@ interface Props {
         total_durasi?: number;
     }[];
     todayTasks: number;
+    todayAbsensi: number;
 }
 
-export default function MobileDashboard({ user, performance, recentTasks, todayTasks }: Props) {
+export default function MobileDashboard({ user, performance, recentTasks, todayTasks, todayAbsensi }: Props) {
     const { url } = usePage();
 
     const completionRate = performance.completed > 0
@@ -88,7 +90,7 @@ export default function MobileDashboard({ user, performance, recentTasks, todayT
                                 {format(new Date(), 'EEEE, d MMMM yyyy', { locale: id })}
                             </div>
                             <h1 className="text-xl font-bold mt-1">
-                                Halo, {user?.name?.split(' ')[0] || 'Staff'}! 👋
+                                Halo, {user?.name || 'Pelaksana'}! 👋
                             </h1>
                             {user?.tempat && (
                                 <div className="text-xs opacity-70 mt-0.5">
@@ -132,6 +134,41 @@ export default function MobileDashboard({ user, performance, recentTasks, todayT
                                     {urgentCount}
                                 </div>
                                 <div className="text-[10px] text-muted-foreground uppercase">Mendesak</div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Quick Menu */}
+                    <div>
+                        <h2 className="font-bold text-sm mb-2">Quick Menu</h2>
+                        <Card className="border-0 shadow-md">
+                            <CardContent className="p-4">
+                                <div className="grid grid-cols-4 gap-4">
+                                    <Link href="/pelaksana/absensi" className="flex flex-col items-center gap-1.5 group">
+                                        <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 group-active:scale-95 transition-transform">
+                                            <Camera className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                                        </div>
+                                        <span className="text-[11px] font-medium text-center">Absensi</span>
+                                    </Link>
+                                    <Link href="/pelaksana/tugas" className="flex flex-col items-center gap-1.5 group">
+                                        <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/30 group-active:scale-95 transition-transform">
+                                            <ListChecks className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                        </div>
+                                        <span className="text-[11px] font-medium text-center">Tugas</span>
+                                    </Link>
+                                    <Link href="/pelaksana/peralatan" className="flex flex-col items-center gap-1.5 group">
+                                        <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30 group-active:scale-95 transition-transform">
+                                            <Wrench className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                                        </div>
+                                        <span className="text-[11px] font-medium text-center">Peralatan</span>
+                                    </Link>
+                                    <Link href="/pelaksana/profil" className="flex flex-col items-center gap-1.5 group">
+                                        <div className="p-2.5 rounded-xl bg-purple-100 dark:bg-purple-900/30 group-active:scale-95 transition-transform">
+                                            <User className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                        </div>
+                                        <span className="text-[11px] font-medium text-center">Profil</span>
+                                    </Link>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -262,23 +299,6 @@ export default function MobileDashboard({ user, performance, recentTasks, todayT
                     </div>
                 </div>
 
-                {/* Quick Action */}
-                <div className="mt-6 px-4">
-                    <Link href="/pelaksana/tugas">
-                        <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-                            <CardContent className="p-4 flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-primary/10">
-                                    <Activity className="h-5 w-5 text-primary" />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="font-semibold text-sm">Lihat Semua Tugas</div>
-                                    <div className="text-xs text-muted-foreground">Kelola dan kerjakan tugas Anda</div>
-                                </div>
-                                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                            </CardContent>
-                        </Card>
-                    </Link>
-                </div>
             </div>
         </MobileLayout>
     );
