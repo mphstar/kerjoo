@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
     PieChart, Pie, Cell
@@ -65,6 +65,10 @@ const chartConfig: ChartConfig = {
 const pieColors = ['#10b981', '#3b82f6', '#f59e0b'];
 
 export default function Dashboard({ stats, weeklyData, pelaksanaStats, recentPenugasan }: Props) {
+    const { auth } = usePage<SharedData>().props;
+    const isPimpinan = auth.user.peran === 'pimpinan';
+    const basePath = isPimpinan ? '/pimpinan' : '/admin';
+
     // If no admin data (shouldn't happen, but fallback)
     if (!stats) {
         return (
@@ -101,10 +105,10 @@ export default function Dashboard({ stats, weeklyData, pelaksanaStats, recentPen
                 {/* Header */}
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold">Dashboard Admin</h1>
+                        <h1 className="text-2xl font-bold">{isPimpinan ? 'Dashboard Pimpinan' : 'Dashboard Admin'}</h1>
                         <p className="text-muted-foreground">Ringkasan harian dan statistik penugasan</p>
                     </div>
-                    <Link href="/admin/report">
+                    <Link href={`${basePath}/report`}>
                         <Badge variant="outline" className="gap-1 cursor-pointer hover:bg-muted">
                             <FileText className="h-3 w-3" />
                             Lihat Laporan Lengkap
@@ -292,7 +296,7 @@ export default function Dashboard({ stats, weeklyData, pelaksanaStats, recentPen
                                     {recentPenugasan.slice(0, 5).map((p) => (
                                         <Link
                                             key={p.id}
-                                            href={`/admin/penugasan/${p.id}`}
+                                            href={`${basePath}/penugasan/${p.id}`}
                                             className="flex items-center justify-between hover:bg-muted/50 -mx-2 px-2 py-1 rounded-md"
                                         >
                                             <div className="min-w-0 flex-1">

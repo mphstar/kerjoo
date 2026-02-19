@@ -14,7 +14,7 @@ class CheckRole
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      * @param  string  $role
      */
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         $user = $request->user();
 
@@ -22,11 +22,13 @@ class CheckRole
             return redirect('/login');
         }
 
-        // Use != instead of !== to handle type casting differences between environments
-        if ($user->peran != $role) {
+        // Support multiple roles: role:admin,pimpinan
+        if (!in_array($user->peran, $roles)) {
             // Redirect based on user's actual role
             if ($user->peran == 'admin') {
                 return redirect('/dashboard');
+            } elseif ($user->peran == 'pimpinan') {
+                return redirect('/pimpinan/penugasan');
             } else {
                 return redirect('/pelaksana/tugas');
             }

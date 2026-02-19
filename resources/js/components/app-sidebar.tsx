@@ -11,12 +11,12 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Building2, UserPlus, Wrench, FileText, Users, Calendar, ClipboardList } from 'lucide-react';
+import { type NavItem, type SharedData } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
+import { BookOpen, Folder, LayoutGrid, Building2, UserPlus, Wrench, FileText, Users, Calendar, ClipboardList, Eye } from 'lucide-react';
 import AppLogo from './app-logo';
 
-const mainNavItems: NavItem[] = [
+const adminMainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: dashboard(),
@@ -24,7 +24,7 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-const masterNavItems: NavItem[] = [
+const adminMasterNavItems: NavItem[] = [
     {
         title: 'Bidang',
         href: '/admin/bidang',
@@ -47,7 +47,7 @@ const masterNavItems: NavItem[] = [
     },
 ];
 
-const logbookNavItems: NavItem[] = [
+const adminLogbookNavItems: NavItem[] = [
     {
         title: 'Penugasan (Admin)',
         href: '/admin/penugasan',
@@ -65,20 +65,33 @@ const logbookNavItems: NavItem[] = [
     },
 ];
 
-const footerNavItems: NavItem[] = [
-    // {
-    //     title: 'Repository',
-    //     href: 'https://github.com/laravel/react-starter-kit',
-    //     icon: Folder,
-    // },
-    // {
-    //     title: 'Documentation',
-    //     href: 'https://laravel.com/docs/starter-kits#react',
-    //     icon: BookOpen,
-    // },
+const pimpinanMainNavItems: NavItem[] = [
+    {
+        title: 'Dashboard',
+        href: dashboard(),
+        icon: LayoutGrid,
+    },
 ];
 
+const pimpinanMonitoringNavItems: NavItem[] = [
+    {
+        title: 'Monitoring Penugasan',
+        href: '/pimpinan/penugasan',
+        icon: Eye,
+    },
+    {
+        title: 'Laporan',
+        href: '/pimpinan/report',
+        icon: FileText,
+    },
+];
+
+const footerNavItems: NavItem[] = [];
+
 export function AppSidebar() {
+    const { auth } = usePage<SharedData>().props;
+    const isPimpinan = auth.user.peran === 'pimpinan';
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -94,9 +107,18 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} label="Platform" />
-                <NavMain items={masterNavItems} label="Master Data" />
-                <NavMain items={logbookNavItems} label="Logbook" />
+                {isPimpinan ? (
+                    <>
+                        <NavMain items={pimpinanMainNavItems} label="Platform" />
+                        <NavMain items={pimpinanMonitoringNavItems} label="Monitoring" />
+                    </>
+                ) : (
+                    <>
+                        <NavMain items={adminMainNavItems} label="Platform" />
+                        <NavMain items={adminMasterNavItems} label="Master Data" />
+                        <NavMain items={adminLogbookNavItems} label="Logbook" />
+                    </>
+                )}
             </SidebarContent>
 
             <SidebarFooter>

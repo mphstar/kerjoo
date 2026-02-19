@@ -13,7 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Plus, User as UserIcon, ChevronRight, CheckCircle2,
     Clock, AlertCircle, Folder, Zap
@@ -47,6 +47,7 @@ interface Props {
         kategori?: string;
         search?: string;
     };
+    basePath?: string;
 }
 
 export default function PenugasanIndex({
@@ -54,8 +55,13 @@ export default function PenugasanIndex({
     kategoriList,
     tugasList,
     pelaksanaList,
-    filters
+    filters,
+    basePath: basePathProp
 }: Props) {
+    const { auth } = usePage<{ auth: { user: { peran: string } } }>().props;
+    const isPimpinan = auth.user.peran === 'pimpinan';
+    const basePath = basePathProp || '/admin';
+
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isBatchDialogOpen, setIsBatchDialogOpen] = useState(false);
     const [isTriggerDialogOpen, setIsTriggerDialogOpen] = useState(false);
@@ -63,7 +69,7 @@ export default function PenugasanIndex({
 
     const handleKategoriChange = (value: string) => {
         setKategoriFilter(value);
-        router.get('/admin/penugasan', {
+        router.get(`${basePath}/penugasan`, {
             kategori: value === 'all' ? undefined : value,
             search: filters?.search,
         }, {
@@ -73,7 +79,7 @@ export default function PenugasanIndex({
     };
 
     const handlePerPageChange = (value: string) => {
-        router.get('/admin/penugasan', {
+        router.get(`${basePath}/penugasan`, {
             per_page: value,
             kategori: filters?.kategori,
             search: filters?.search,
@@ -85,31 +91,33 @@ export default function PenugasanIndex({
 
     return (
         <AppLayout breadcrumbs={[
-            { title: 'Dashboard', href: '/admin' },
-            { title: 'Daftar Penugasan', href: '/admin/penugasan' },
+            { title: 'Dashboard', href: basePath === '/pimpinan' ? '/dashboard' : '/admin' },
+            { title: isPimpinan ? 'Monitoring Penugasan' : 'Daftar Penugasan', href: `${basePath}/penugasan` },
         ]}>
-            <Head title="Manajemen Penugasan" />
+            <Head title={isPimpinan ? 'Monitoring Penugasan' : 'Manajemen Penugasan'} />
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h2 className="text-xl font-semibold">Manajemen Penugasan</h2>
-                        <p className="text-sm text-muted-foreground">Pilih pelaksana untuk melihat dan kelola penugasan</p>
+                        <h2 className="text-xl font-semibold">{isPimpinan ? 'Monitoring Penugasan' : 'Manajemen Penugasan'}</h2>
+                        <p className="text-sm text-muted-foreground">{isPimpinan ? 'Pantau penugasan pelaksana' : 'Pilih pelaksana untuk melihat dan kelola penugasan'}</p>
                     </div>
-                    <div className="flex gap-2">
-                        <Button variant="secondary" onClick={() => setIsTriggerDialogOpen(true)}>
-                            <Zap className="mr-2 h-4 w-4" />
-                            Trigger Penugasan
-                        </Button>
-                        <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Batch Penugasan
-                        </Button>
-                        <Button onClick={() => setIsDialogOpen(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Buat Penugasan
-                        </Button>
-                    </div>
+                    {!isPimpinan && (
+                        <div className="flex gap-2">
+                            <Button variant="secondary" onClick={() => setIsTriggerDialogOpen(true)}>
+                                <Zap className="mr-2 h-4 w-4" />
+                                Trigger Penugasan
+                            </Button>
+                            <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Batch Penugasan
+                            </Button>
+                            <Button onClick={() => setIsDialogOpen(true)}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Buat Penugasan
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -161,7 +169,7 @@ export default function PenugasanIndex({
                         pelaksana.data.map((p) => (
                             <Link
                                 key={p.id}
-                                href={`/admin/penugasan/pelaksana/${p.id}`}
+                                href={`${basePath}/penugasan/pelaksana/${p.id}`}
                                 className="block"
                             >
                                 <Card className="h-full hover:shadow-md transition-shadow cursor-pointer hover:border-primary/50">
@@ -217,24 +225,28 @@ export default function PenugasanIndex({
                     <Pagination links={pelaksana.links} />
                 </div>
 
-                <PenugasanDialog
-                    open={isDialogOpen}
-                    onOpenChange={setIsDialogOpen}
-                    tugasList={tugasList}
-                    pelaksanaList={pelaksanaList}
-                />
+                {!isPimpinan && (
+                    <>
+                        <PenugasanDialog
+                            open={isDialogOpen}
+                            onOpenChange={setIsDialogOpen}
+                            tugasList={tugasList}
+                            pelaksanaList={pelaksanaList}
+                        />
 
-                <BatchPenugasanDialog
-                    open={isBatchDialogOpen}
-                    onOpenChange={setIsBatchDialogOpen}
-                    tugasList={tugasList}
-                    pelaksanaList={pelaksanaList}
-                />
+                        <BatchPenugasanDialog
+                            open={isBatchDialogOpen}
+                            onOpenChange={setIsBatchDialogOpen}
+                            tugasList={tugasList}
+                            pelaksanaList={pelaksanaList}
+                        />
 
-                <DailyTriggerDialog
-                    open={isTriggerDialogOpen}
-                    onOpenChange={setIsTriggerDialogOpen}
-                />
+                        <DailyTriggerDialog
+                            open={isTriggerDialogOpen}
+                            onOpenChange={setIsTriggerDialogOpen}
+                        />
+                    </>
+                )}
             </div>
         </AppLayout>
     );

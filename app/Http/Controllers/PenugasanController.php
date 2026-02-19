@@ -184,8 +184,12 @@ class PenugasanController extends Controller
         $penugasan = Penugasan::with(['tugas.kategori', 'pengguna', 'items', 'ditugaskanOleh', 'komentar.pengguna'])
             ->findOrFail($id);
 
+        $user = auth()->user();
+        $basePath = $user->peran === 'pimpinan' ? '/pimpinan' : '/admin';
+
         return inertia('admin/penugasan/detail', [
             'penugasan' => $penugasan,
+            'basePath' => $basePath,
         ]);
     }
 }

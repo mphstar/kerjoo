@@ -23,7 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         $user = Auth::user();
 
-        if ($user->peran === 'admin') {
+        if ($user->peran === 'admin' || $user->peran === 'pimpinan') {
             // Admin Dashboard with daily stats
             $today = now()->startOfDay();
             $weekStart = now()->startOfWeek();
@@ -555,6 +555,187 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 'pelaksanaList' => \App\Models\User::where('peran', 'pelaksana')->get(),
             ]);
         })->name('admin.report');
+    });
+
+    // Pimpinan Routes (Monitoring only - reuses admin pages)
+    Route::prefix('pimpinan')->middleware('role:pimpinan')->group(function () {
+        // Penugasan monitoring - same as admin but read-only
+        Route::get('penugasan', function (\Illuminate\Http\Request $request) {
+            $query = \App\Models\User::where('peran', 'pelaksana')
+                ->with('kategori')
+                ->withCount(['penugasan as total_penugasan'])
+                ->withCount(['penugasan as pending_count' => function ($q) {
+                    $q->where('status', 'pending');
+                }])
+                ->withCount(['penugasan as dikerjakan_count' => function ($q) {
+                    $q->where('status', 'sedang_dikerjakan');
+                }])
+                ->withCount(['penugasan as selesai_count' => function ($q) {
+                    $q->where('status', 'selesai');
+                }]);
+
+            if ($request->has('kategori') && $request->kategori !== 'all') {
+                $query->where('kategori_id', $request->kategori);
+            }
+            if ($request->has('search') && $request->search) {
+                $query->where('name', 'like', '%' . $request->search . '%');
+            }
+
+            $perPage = $request->input('per_page', 10);
+            return Inertia::render('admin/penugasan/index', [
+                'pelaksana' => $query->orderBy('name')->paginate($perPage)->withQueryString(),
+                'kategoriList' => \App\Models\Kategori::all(),
+                'tugasList' => [],
+                'pelaksanaList' => [],
+                'basePath' => '/pimpinan',
+                'filters' => [
+                    'kategori' => $request->kategori,
+                    'search' => $request->search,
+                ]
+            ]);
+        })->name('pimpinan.penugasan.index');
+
+        Route::get('penugasan/pelaksana/{id}', function (\Illuminate\Http\Request $request, $id) {
+            $pelaksana = \App\Models\User::with('kategori')->findOrFail($id);
+            $query = \App\Models\Penugasan::with(['tugas.kategori', 'items'])
+                ->where('pengguna_id', $id);
+
+            if ($request->has('date_from') && $request->date_from) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+            if ($request->has('date_to') && $request->date_to) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+            if ($request->has('status') && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            return Inertia::render('admin/penugasan/pelaksana-detail', [
+                'pelaksana' => $pelaksana,
+                'penugasan' => $query->orderByDesc('created_at')->get(),
+                'tugasList' => [],
+                'basePath' => '/pimpinan',
+                'filters' => [
+                    'date_from' => $request->date_from,
+                    'date_to' => $request->date_to,
+                    'status' => $request->status,
+                ]
+            ]);
+        })->name('pimpinan.penugasan.pelaksana.show');
+
+        Route::get('penugasan/{id}', [PenugasanController::class, 'show'])->name('pimpinan.penugasan.show');
+
+        // Komentar Penugasan (Pimpinan)
+        Route::post('penugasan/{id}/komentar', [KomentarPenugasanController::class, 'store'])->name('pimpinan.penugasan.komentar.store');
+        Route::delete('penugasan/komentar/{id}', [KomentarPenugasanController::class, 'destroy'])->name('pimpinan.penugasan.komentar.destroy');
+
+        // Report (Pimpinan) - same as admin report
+        Route::get('report', function (\Illuminate\Http\Request $request) {
+            $period = $request->input('period', 'month');
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+            $kategoriId = $request->input('kategori');
+            $pelaksanaId = $request->input('pelaksana');
+
+            switch ($period) {
+                case 'today':
+                    $startDate = now()->startOfDay();
+                    $endDate = now()->endOfDay();
+                    break;
+                case 'week':
+                    $startDate = now()->startOfWeek();
+                    $endDate = now()->endOfWeek();
+                    break;
+                case 'month':
+                    $startDate = now()->startOfMonth();
+                    $endDate = now()->endOfMonth();
+                    break;
+                case 'year':
+                    $startDate = now()->startOfYear();
+                    $endDate = now()->endOfYear();
+                    break;
+                case 'custom':
+                    $startDate = $dateFrom ? \Carbon\Carbon::parse($dateFrom)->startOfDay() : now()->startOfMonth();
+                    $endDate = $dateTo ? \Carbon\Carbon::parse($dateTo)->endOfDay() : now()->endOfDay();
+                    break;
+                default:
+                    $startDate = now()->startOfMonth();
+                    $endDate = now()->endOfMonth();
+            }
+
+            $query = \App\Models\Penugasan::with(['tugas.kategori', 'pengguna.kategori', 'items'])
+                ->whereBetween('created_at', [$startDate, $endDate]);
+
+            if ($kategoriId && $kategoriId !== 'all') {
+                $query->whereHas('tugas', fn($q) => $q->where('kategori_id', $kategoriId));
+            }
+            if ($pelaksanaId && $pelaksanaId !== 'all') {
+                $query->where('pengguna_id', $pelaksanaId);
+            }
+
+            $penugasan = $query->orderByDesc('created_at')->get();
+
+            $stats = [
+                'total' => $penugasan->count(),
+                'selesai' => $penugasan->where('status', 'selesai')->count(),
+                'dikerjakan' => $penugasan->where('status', 'sedang_dikerjakan')->count(),
+                'pending' => $penugasan->where('status', 'pending')->count(),
+                'totalDurasi' => $penugasan->sum(fn($p) => $p->items->sum('durasi_detik')),
+            ];
+
+            $chartData = $penugasan->groupBy(fn($p) => $p->created_at->format('Y-m-d'))
+                ->map(fn($items, $date) => [
+                    'date' => $date,
+                    'label' => \Carbon\Carbon::parse($date)->locale('id')->isoFormat('D MMM'),
+                    'total' => $items->count(),
+                    'selesai' => $items->where('status', 'selesai')->count(),
+                    'pending' => $items->where('status', 'pending')->count(),
+                ])
+                ->values();
+
+            $statusDistribution = [
+                ['name' => 'Selesai', 'value' => $stats['selesai'], 'color' => '#10b981'],
+                ['name' => 'Dikerjakan', 'value' => $stats['dikerjakan'], 'color' => '#3b82f6'],
+                ['name' => 'Pending', 'value' => $stats['pending'], 'color' => '#f59e0b'],
+            ];
+
+            $pelaksanaPerformance = $penugasan->groupBy('pengguna_id')
+                ->map(fn($items) => [
+                    'name' => $items->first()->pengguna->name ?? 'Unknown',
+                    'total' => $items->count(),
+                    'selesai' => $items->where('status', 'selesai')->count(),
+                    'durasi' => $items->sum(fn($p) => $p->items->sum('durasi_detik')),
+                ])
+                ->sortByDesc('selesai')
+                ->values()
+                ->take(10);
+
+            return Inertia::render('admin/report/index', [
+                'penugasan' => $penugasan->map(fn($p) => [
+                    'id' => $p->id,
+                    'tugas' => $p->tugas->nama ?? 'Unknown',
+                    'kategori' => $p->tugas->kategori->nama ?? 'Unknown',
+                    'pelaksana' => $p->pengguna->name ?? 'Unknown',
+                    'status' => $p->status,
+                    'created_at' => $p->created_at,
+                    'durasi' => $p->items->sum('durasi_detik'),
+                ]),
+                'stats' => $stats,
+                'chartData' => $chartData,
+                'statusDistribution' => $statusDistribution,
+                'pelaksanaPerformance' => $pelaksanaPerformance,
+                'basePath' => '/pimpinan',
+                'filters' => [
+                    'period' => $period,
+                    'date_from' => $dateFrom,
+                    'date_to' => $dateTo,
+                    'kategori' => $kategoriId,
+                    'pelaksana' => $pelaksanaId,
+                ],
+                'kategoriList' => \App\Models\Kategori::with('bidang')->get(),
+                'pelaksanaList' => \App\Models\User::where('peran', 'pelaksana')->get(),
+            ]);
+        })->name('pimpinan.report');
     });
 
     // Pelaksana Routes (Pelaksana only)

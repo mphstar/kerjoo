@@ -23,10 +23,12 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 
 interface Props {
     penugasan: Penugasan & { items: ItemPenugasan[] };
+    basePath?: string;
 }
 
-export default function AdminPenugasanDetail({ penugasan }: Props) {
-    const { auth } = usePage<{ auth: { user: { id: number } } }>().props;
+export default function AdminPenugasanDetail({ penugasan, basePath: basePathProp }: Props) {
+    const { auth } = usePage<{ auth: { user: { id: number; peran: string } } }>().props;
+    const basePath = basePathProp || '/admin';
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [komentarIsi, setKomentarIsi] = useState('');
     const [isSending, setIsSending] = useState(false);
@@ -81,8 +83,8 @@ export default function AdminPenugasanDetail({ penugasan }: Props) {
 
     return (
         <AppLayout breadcrumbs={[
-            { title: 'Dashboard', href: '/admin' },
-            { title: 'Penugasan', href: '/admin/penugasan' },
+            { title: 'Dashboard', href: basePath === '/pimpinan' ? '/dashboard' : '/admin' },
+            { title: auth.user.peran === 'pimpinan' ? 'Monitoring Penugasan' : 'Penugasan', href: `${basePath}/penugasan` },
             { title: penugasan.tugas?.nama || 'Detail', href: '#' }
         ]}>
             <Head title={`Detail: ${penugasan.tugas?.nama}`} />
@@ -91,7 +93,7 @@ export default function AdminPenugasanDetail({ penugasan }: Props) {
                 {/* Header */}
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="flex items-center gap-4">
-                        <Link href="/admin/penugasan">
+                        <Link href={`${basePath}/penugasan`}>
                             <Button variant="outline" size="icon">
                                 <ArrowLeft className="h-4 w-4" />
                             </Button>
@@ -433,7 +435,7 @@ export default function AdminPenugasanDetail({ penugasan }: Props) {
                                         e.preventDefault();
                                         if (komentarIsi.trim() && !isSending) {
                                             setIsSending(true);
-                                            router.post(`/admin/penugasan/${penugasan.id}/komentar`, { isi: komentarIsi.trim() }, {
+                                            router.post(`${basePath}/penugasan/${penugasan.id}/komentar`, { isi: komentarIsi.trim() }, {
                                                 onSuccess: () => setKomentarIsi(''),
                                                 onFinish: () => setIsSending(false),
                                             });
@@ -446,7 +448,7 @@ export default function AdminPenugasanDetail({ penugasan }: Props) {
                                 disabled={!komentarIsi.trim() || isSending}
                                 onClick={() => {
                                     setIsSending(true);
-                                    router.post(`/admin/penugasan/${penugasan.id}/komentar`, { isi: komentarIsi.trim() }, {
+                                    router.post(`${basePath}/penugasan/${penugasan.id}/komentar`, { isi: komentarIsi.trim() }, {
                                         onSuccess: () => setKomentarIsi(''),
                                         onFinish: () => setIsSending(false),
                                     });
@@ -494,7 +496,7 @@ export default function AdminPenugasanDetail({ penugasan }: Props) {
                             className="bg-destructive text-white hover:bg-destructive/90"
                             onClick={() => {
                                 if (deleteKomentarId) {
-                                    router.delete(`/admin/penugasan/komentar/${deleteKomentarId}`);
+                                    router.delete(`${basePath}/penugasan/komentar/${deleteKomentarId}`);
                                     setDeleteKomentarId(null);
                                 }
                             }}

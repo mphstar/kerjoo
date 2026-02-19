@@ -32,7 +32,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type Penugasan, type Tugas, type User } from '@/types/logbook';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
     ArrowLeft, Calendar as CalendarIcon, CalendarDays, CheckCircle2,
     Clock, Eye, FileDown, Folder, Loader2, MapPin, Navigation, Plus, Target, Timer, Trash2, User as UserIcon, X
@@ -51,13 +51,18 @@ interface Props {
         date_to?: string;
         status?: string;
     };
+    basePath?: string;
 }
 
 interface GroupedTasks {
     [key: string]: Penugasan[];
 }
 
-export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filters }: Props) {
+export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filters, basePath: basePathProp }: Props) {
+    const { auth } = usePage<{ auth: { user: { peran: string } } }>().props;
+    const isPimpinan = auth.user.peran === 'pimpinan';
+    const basePath = basePathProp || '/admin';
+
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -183,7 +188,7 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
     const confirmDelete = () => {
         if (deletingId) {
             setIsDeleting(true);
-            router.delete(`/admin/penugasan/${deletingId}`, {
+            router.delete(`${basePath}/penugasan/${deletingId}`, {
                 onFinish: () => {
                     setIsDeleting(false);
                     setDeleteDialogOpen(false);
@@ -215,7 +220,7 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
             lokasi_nama: data.lokasi_nama || null,
         }));
 
-        form.post('/admin/penugasan', {
+        form.post(`${basePath}/penugasan`, {
             onSuccess: () => {
                 setIsDialogOpen(false);
                 form.reset();
@@ -336,8 +341,8 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
 
     return (
         <AppLayout breadcrumbs={[
-            { title: 'Dashboard', href: '/admin' },
-            { title: 'Penugasan', href: '/admin/penugasan' },
+            { title: 'Dashboard', href: basePath === '/pimpinan' ? '/dashboard' : '/admin' },
+            { title: isPimpinan ? 'Monitoring Penugasan' : 'Penugasan', href: `${basePath}/penugasan` },
             { title: pelaksana.name, href: '#' }
         ]}>
             <Head title={`Penugasan: ${pelaksana.name}`} />
@@ -349,7 +354,7 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => router.get('/admin/penugasan')}
+                            onClick={() => router.get(`${basePath}/penugasan`)}
                         >
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
@@ -367,16 +372,18 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
                             </div>
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => setIsExportDialogOpen(true)}>
-                            <FileDown className="mr-2 h-4 w-4" />
-                            Export PDF
-                        </Button>
-                        <Button onClick={() => setIsDialogOpen(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Buat Penugasan
-                        </Button>
-                    </div>
+                    {!isPimpinan && (
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setIsExportDialogOpen(true)}>
+                                <FileDown className="mr-2 h-4 w-4" />
+                                Export PDF
+                            </Button>
+                            <Button onClick={() => setIsDialogOpen(true)}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Buat Penugasan
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Stats */}
@@ -557,7 +564,7 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
                                                                                 variant="ghost"
                                                                                 size="icon"
                                                                                 className="h-7 w-7"
-                                                                                onClick={() => router.get(`/admin/penugasan/${item.id}`)}
+                                                                                onClick={() => router.get(`${basePath}/penugasan/${item.id}`)}
                                                                             >
                                                                                 <Eye className="h-3.5 w-3.5" />
                                                                             </Button>
@@ -567,23 +574,25 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
                                                                         </TooltipContent>
                                                                     </Tooltip>
                                                                 </TooltipProvider>
-                                                                <TooltipProvider>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Button
-                                                                                variant="ghost"
-                                                                                size="icon"
-                                                                                className="h-7 w-7 text-destructive"
-                                                                                onClick={() => handleDelete(item.id)}
-                                                                            >
-                                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                                            </Button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p>Hapus Penugasan</p>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </TooltipProvider>
+                                                                {!isPimpinan && (
+                                                                    <TooltipProvider>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    className="h-7 w-7 text-destructive"
+                                                                                    onClick={() => handleDelete(item.id)}
+                                                                                >
+                                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                                </Button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>
+                                                                                <p>Hapus Penugasan</p>
+                                                                            </TooltipContent>
+                                                                        </Tooltip>
+                                                                    </TooltipProvider>
+                                                                )}
                                                             </div>
                                                         </td>
                                                     </tr>

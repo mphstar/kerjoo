@@ -86,11 +86,13 @@ export default function UsersIndex({ users, kategori }: Props) {
         : users.data.filter(u => u.peran === roleFilter);
 
     const getRoleBadge = (peran: string) => {
-        return peran === 'admin' ? (
-            <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">Admin</Badge>
-        ) : (
-            <Badge variant="secondary">Pelaksana</Badge>
-        );
+        if (peran === 'admin') {
+            return <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">Admin</Badge>;
+        }
+        if (peran === 'pimpinan') {
+            return <Badge className="bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300">Pimpinan</Badge>;
+        }
+        return <Badge variant="secondary">Pelaksana</Badge>;
     };
 
     return (
@@ -142,6 +144,7 @@ export default function UsersIndex({ users, kategori }: Props) {
                                 <SelectItem value="all">Semua Peran</SelectItem>
                                 <SelectItem value="admin">Admin</SelectItem>
                                 <SelectItem value="pelaksana">Pelaksana</SelectItem>
+                                <SelectItem value="pimpinan">Pimpinan</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

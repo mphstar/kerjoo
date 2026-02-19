@@ -40,7 +40,7 @@ export default function UserFormDialog({ open, onOpenChange, user, kategoriList 
         name: '',
         email: '',
         password: '',
-        peran: 'pelaksana' as 'admin' | 'pelaksana',
+        peran: 'pelaksana' as 'admin' | 'pelaksana' | 'pimpinan',
         kategori_id: '',
         nomor_telepon: '',
         nip_nrp: '',
@@ -163,7 +163,7 @@ export default function UserFormDialog({ open, onOpenChange, user, kategoriList 
                             <Label htmlFor="peran">Peran</Label>
                             <Select
                                 value={data.peran}
-                                onValueChange={(value) => setData('peran', value as 'admin' | 'pelaksana')}
+                                onValueChange={(value) => setData('peran', value as 'admin' | 'pelaksana' | 'pimpinan')}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Pilih Peran" />
@@ -171,6 +171,7 @@ export default function UserFormDialog({ open, onOpenChange, user, kategoriList 
                                 <SelectContent>
                                     <SelectItem value="admin">Admin</SelectItem>
                                     <SelectItem value="pelaksana">Pelaksana</SelectItem>
+                                    <SelectItem value="pimpinan">Pimpinan</SelectItem>
                                 </SelectContent>
                             </Select>
                             {errors.peran && <span className="text-sm text-destructive">{errors.peran}</span>}

@@ -26,7 +26,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type Kategori, type User } from '@/types/logbook';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
     PieChart, Pie, Cell
@@ -86,6 +86,7 @@ interface Props {
     };
     kategoriList: Kategori[];
     pelaksanaList: User[];
+    basePath?: string;
 }
 
 const chartConfig: ChartConfig = {
@@ -103,7 +104,11 @@ export default function ReportIndex({
     filters,
     kategoriList,
     pelaksanaList,
+    basePath: basePathProp,
 }: Props) {
+    const { auth } = usePage<{ auth: { user: { peran: string } } }>().props;
+    const basePath = basePathProp || '/admin';
+
     const [period, setPeriod] = useState(filters.period || 'month');
     const [kategoriFilter, setKategoriFilter] = useState(filters.kategori || 'all');
     const [pelaksanaFilter, setPelaksanaFilter] = useState(filters.pelaksana || 'all');
@@ -159,7 +164,7 @@ export default function ReportIndex({
             params.date_to = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined;
         }
 
-        router.get('/admin/report', params, { preserveState: true, preserveScroll: true });
+        router.get(`${basePath}/report`, params, { preserveState: true, preserveScroll: true });
     };
 
     const handlePeriodChange = (value: string) => {
@@ -223,8 +228,8 @@ export default function ReportIndex({
 
     return (
         <AppLayout breadcrumbs={[
-            { title: 'Dashboard', href: '/admin' },
-            { title: 'Laporan', href: '/admin/report' }
+            { title: 'Dashboard', href: basePath === '/pimpinan' ? '/dashboard' : '/admin' },
+            { title: 'Laporan', href: `${basePath}/report` }
         ]}>
             <Head title="Laporan Penugasan" />
 

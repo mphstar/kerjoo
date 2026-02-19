@@ -112,4 +112,12 @@ class User extends Authenticatable
     {
         return $this->peran === 'pelaksana';
     }
+
+    /**
+     * Check if user is pimpinan
+     */
+    public function isPimpinan(): bool
+    {
+        return $this->peran === 'pimpinan';
+    }
 }

@@ -36,7 +36,7 @@ export interface User {
     name: string;
     email: string;
     email_verified_at: string | null;
-    peran: 'admin' | 'pelaksana';
+    peran: 'admin' | 'pelaksana' | 'pimpinan';
     kategori_id: number | null;
     nomor_telepon: string | null;
     nip_nrp: string | null;
