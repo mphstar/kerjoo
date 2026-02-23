@@ -209,38 +209,13 @@
             color: #666;
         }
 
-        /* Signature Section */
-        .signature-section {
+        /* Print Date Section */
+        .print-date {
             margin-top: 40px;
-            page-break-inside: avoid;
-        }
-
-        .signature-table {
-            width: 100%;
-        }
-
-        .signature-cell {
-            width: 45%;
             text-align: center;
-            vertical-align: top;
-            padding: 10px;
-        }
-
-        .signature-title {
             font-size: 9pt;
-            margin-bottom: 50px;
-        }
-
-        .signature-line {
-            border-bottom: 1px solid #000;
-            margin: 0 auto;
-            width: 150px;
-        }
-
-        .signature-name {
-            font-weight: bold;
-            font-size: 10pt;
-            margin-top: 5px;
+            font-style: italic;
+            color: #333;
         }
 
         /* Grid table for tasks */
@@ -317,11 +292,6 @@
                     </td>
                 </tr>
             @endif
-            <tr>
-                <td class="label">Tanggal Cetak</td>
-                <td class="separator">:</td>
-                <td>{{ now()->locale('id')->isoFormat('dddd, D MMMM YYYY [pukul] HH:mm') }}</td>
-            </tr>
         </table>
     </div>
 
@@ -535,26 +505,9 @@
         <div class="empty-state">Tidak ada penugasan dalam periode ini</div>
     @endif
 
-    <!-- Signature Section -->
-    <div class="signature-section">
-        <table class="signature-table">
-            <tr>
-                <td class="signature-cell">
-                    <div class="signature-title">Penanggung Jawab,</div>
-                    <div class="signature-line"></div>
-                    <div class="signature-name">{{ $adminUser->name ?? '____________________' }}</div>
-                </td>
-                <td style="width: 10%;"></td>
-                <td class="signature-cell">
-                    <div class="signature-title">Pelaksana,</div>
-                    <div class="signature-line"></div>
-                    <div class="signature-name">{{ $pelaksana->name }}</div>
-                    @if (isset($pelaksana->nip_nrp) && $pelaksana->nip_nrp)
-                        <div style="font-size: 8pt; margin-top: 2px;">NIP/NRP: {{ $pelaksana->nip_nrp }}</div>
-                    @endif
-                </td>
-            </tr>
-        </table>
+    <!-- Print Date -->
+    <div class="print-date">
+        Dicetak pada tanggal: {{ now()->locale('id')->isoFormat('dddd, D MMMM YYYY [pukul] HH:mm') }}
     </div>
 </body>
 
