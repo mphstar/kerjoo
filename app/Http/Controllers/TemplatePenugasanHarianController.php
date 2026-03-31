@@ -43,6 +43,7 @@ class TemplatePenugasanHarianController extends Controller
             'tugas_ids' => 'required|array|min:1',
             'tugas_ids.*' => 'exists:tugas,id',
             'tenggat_waktu_jam' => 'nullable|string|max:5',
+            'jam_mulai' => 'nullable|string|max:5',
             'deadline_hari_berikutnya' => 'boolean',
             'catatan' => 'nullable|string',
             'lokasi_latitude' => 'nullable|numeric',
@@ -59,6 +60,7 @@ class TemplatePenugasanHarianController extends Controller
                 'tipe' => $validated['tipe'],
                 'pengguna_id' => $validated['pengguna_id'],
                 'tenggat_waktu_jam' => $validated['tenggat_waktu_jam'] ?? '17:00',
+                'jam_mulai' => $validated['jam_mulai'] ?? '08:00',
                 'deadline_hari_berikutnya' => $validated['deadline_hari_berikutnya'] ?? false,
                 'catatan' => $validated['catatan'] ?? null,
                 'lokasi_latitude' => $validated['lokasi_latitude'] ?? null,
@@ -99,6 +101,7 @@ class TemplatePenugasanHarianController extends Controller
             'tugas_ids' => 'required|array|min:1',
             'tugas_ids.*' => 'exists:tugas,id',
             'tenggat_waktu_jam' => 'nullable|string|max:5',
+            'jam_mulai' => 'nullable|string|max:5',
             'deadline_hari_berikutnya' => 'boolean',
             'catatan' => 'nullable|string',
             'lokasi_latitude' => 'nullable|numeric',
@@ -115,6 +118,7 @@ class TemplatePenugasanHarianController extends Controller
                 'tipe' => $validated['tipe'],
                 'pengguna_id' => $validated['pengguna_id'],
                 'tenggat_waktu_jam' => $validated['tenggat_waktu_jam'] ?? '17:00',
+                'jam_mulai' => $validated['jam_mulai'] ?? '08:00',
                 'deadline_hari_berikutnya' => $validated['deadline_hari_berikutnya'] ?? false,
                 'catatan' => $validated['catatan'] ?? null,
                 'lokasi_latitude' => $validated['lokasi_latitude'] ?? null,
@@ -202,12 +206,17 @@ class TemplatePenugasanHarianController extends Controller
                         $deadline->addDay();
                     }
 
+                    // Build jam_mulai datetime
+                    $jamMulaiTime = $template->jam_mulai ?? '08:00';
+                    $jamMulai = $targetDate->copy()->setTimeFromTimeString($jamMulaiTime . ':00');
+
                     Penugasan::create([
                         'tugas_id' => $item->tugas_id,
                         'pengguna_id' => $template->pengguna_id,
                         'ditugaskan_oleh' => auth()->id(),
                         'status' => 'pending',
                         'tenggat_waktu' => $deadline,
+                        'jam_mulai' => $jamMulai,
                         'catatan' => $template->catatan,
                         'lokasi_latitude' => $template->lokasi_latitude,
                         'lokasi_longitude' => $template->lokasi_longitude,
@@ -275,12 +284,17 @@ class TemplatePenugasanHarianController extends Controller
                         $deadline->addDay();
                     }
 
+                    // Build jam_mulai datetime
+                    $jamMulaiTime = $template->jam_mulai ?? '08:00';
+                    $jamMulai = $targetDate->copy()->setTimeFromTimeString($jamMulaiTime . ':00');
+
                     Penugasan::create([
                         'tugas_id' => $item->tugas_id,
                         'pengguna_id' => $template->pengguna_id,
                         'ditugaskan_oleh' => auth()->id(),
                         'status' => 'pending',
                         'tenggat_waktu' => $deadline,
+                        'jam_mulai' => $jamMulai,
                         'catatan' => $template->catatan,
                         'lokasi_latitude' => $template->lokasi_latitude,
                         'lokasi_longitude' => $template->lokasi_longitude,

@@ -211,11 +211,38 @@
 
         /* Print Date Section */
         .print-date {
-            margin-top: 40px;
+            margin-top: 20px;
             text-align: center;
             font-size: 9pt;
             font-style: italic;
             color: #333;
+        }
+
+        /* Signature Section */
+        .signature-section {
+            margin-top: 50px;
+            width: 100%;
+            page-break-inside: avoid;
+        }
+
+        .signature-table {
+            width: 100%;
+            text-align: center;
+        }
+
+        .signature-table td {
+            width: 50%;
+            padding-top: 20px;
+            vertical-align: bottom;
+        }
+
+        .signature-title {
+            margin-bottom: 70px;
+        }
+
+        .signature-name {
+            font-weight: bold;
+            text-decoration: underline;
         }
 
         /* Grid table for tasks */
@@ -248,7 +275,7 @@
                 <td>{{ $pelaksana->name }}</td>
             </tr>
             <tr>
-                <td class="label">Kategori</td>
+                <td class="label">Jabatan</td>
                 <td class="separator">:</td>
                 <td>{{ $pelaksana->kategori->nama ?? '-' }}</td>
             </tr>
@@ -504,6 +531,22 @@
     @if ($allPenugasan->count() == 0)
         <div class="empty-state">Tidak ada penugasan dalam periode ini</div>
     @endif
+
+    <!-- Signature Section -->
+    <div class="signature-section">
+        <table class="signature-table">
+            <tr>
+                <td>
+                    <div class="signature-title">Mengetahui,<br>Admin / Pimpinan</div>
+                    <div class="signature-name">( _________________________ )</div>
+                </td>
+                <td>
+                    <div class="signature-title">Pelaksana Tugas</div>
+                    <div class="signature-name">{{ $pelaksana->name }}</div>
+                </td>
+            </tr>
+        </table>
+    </div>
 
     <!-- Print Date -->
     <div class="print-date">

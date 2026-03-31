@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ItemPenugasan;
 use App\Models\Penugasan;
 use App\Models\Tugas;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -19,6 +20,10 @@ class PenugasanController extends Controller
             'tugas_id' => 'required|exists:tugas,id',
             'pengguna_id' => 'required|exists:users,id',
             'tenggat_waktu' => 'nullable|date|after_or_equal:today',
+            'tenggat_jam' => 'nullable|string|max:5',
+            'jam_mulai_tanggal' => 'nullable|date',
+            'jam_mulai_jam' => 'nullable|string|max:5',
+            'deadline_hari_berikutnya' => 'boolean',
             'catatan' => 'nullable|string',
             // Geolocation fields
             'lokasi_latitude' => 'nullable|numeric|between:-90,90',
@@ -29,13 +34,35 @@ class PenugasanController extends Controller
 
         $tugas = Tugas::findOrFail($validated['tugas_id']);
 
+        // Build tenggat_waktu datetime
+        $tenggatWaktu = null;
+        if (!empty($validated['tenggat_waktu'])) {
+            $tenggatDate = Carbon::parse($validated['tenggat_waktu']);
+            $tenggatTime = $validated['tenggat_jam'] ?? '17:00';
+            $tenggatWaktu = $tenggatDate->copy()->setTimeFromTimeString($tenggatTime . ':00');
+
+            // Shift malam: deadline jatuh di hari berikutnya
+            if ($validated['deadline_hari_berikutnya'] ?? false) {
+                $tenggatWaktu->addDay();
+            }
+        }
+
+        // Build jam_mulai datetime
+        $jamMulai = null;
+        if (!empty($validated['jam_mulai_tanggal'])) {
+            $mulaiDate = Carbon::parse($validated['jam_mulai_tanggal']);
+            $mulaiTime = $validated['jam_mulai_jam'] ?? '08:00';
+            $jamMulai = $mulaiDate->copy()->setTimeFromTimeString($mulaiTime . ':00');
+        }
+
         // Create penugasan
         $penugasan = Penugasan::create([
             'tugas_id' => $validated['tugas_id'],
             'pengguna_id' => $validated['pengguna_id'],
             'ditugaskan_oleh' => Auth::id(),
             'status' => 'pending',
-            'tenggat_waktu' => $validated['tenggat_waktu'] ?? null,
+            'tenggat_waktu' => $tenggatWaktu,
+            'jam_mulai' => $jamMulai,
             'catatan' => $validated['catatan'] ?? null,
             'lokasi_latitude' => $validated['lokasi_latitude'] ?? null,
             'lokasi_longitude' => $validated['lokasi_longitude'] ?? null,
@@ -43,9 +70,7 @@ class PenugasanController extends Controller
             'lokasi_nama' => $validated['lokasi_nama'] ?? null,
         ]);
 
-        // Create generic item based on Tugas name, since we don't have separate items in request
-        // If Tugas has requirements (persyaratan), we could potentially use those, 
-        // but for now let's just create one main item for the task.
+        // Create generic item based on Tugas name
         ItemPenugasan::create([
             'penugasan_id' => $penugasan->id,
             'nama' => $tugas->nama,
@@ -69,6 +94,10 @@ class PenugasanController extends Controller
             'pengguna_ids' => 'required_if:mode,tugas_to_pelaksana|array',
             'pengguna_ids.*' => 'exists:users,id',
             'tenggat_waktu' => 'nullable|date|after_or_equal:today',
+            'tenggat_waktu_jam' => 'nullable|string|max:5',
+            'jam_mulai_tanggal' => 'nullable|date',
+            'jam_mulai_jam' => 'nullable|string|max:5',
+            'deadline_hari_berikutnya' => 'boolean',
             'catatan' => 'nullable|string',
             // Geolocation fields
             'lokasi_latitude' => 'nullable|numeric|between:-90,90',
@@ -76,6 +105,27 @@ class PenugasanController extends Controller
             'lokasi_radius' => 'nullable|integer|min:1|max:10000',
             'lokasi_nama' => 'nullable|string|max:255',
         ]);
+
+        // Build tenggat_waktu datetime
+        $tenggatWaktu = null;
+        if (!empty($validated['tenggat_waktu'])) {
+            $tenggatDate = Carbon::parse($validated['tenggat_waktu']);
+            $tenggatTime = $validated['tenggat_waktu_jam'] ?? '23:59';
+            $tenggatWaktu = $tenggatDate->copy()->setTimeFromTimeString($tenggatTime . ':00');
+
+            // Shift malam: deadline jatuh di hari berikutnya
+            if ($validated['deadline_hari_berikutnya'] ?? false) {
+                $tenggatWaktu->addDay();
+            }
+        }
+
+        // Build jam_mulai datetime
+        $jamMulai = null;
+        if (!empty($validated['jam_mulai_tanggal'])) {
+            $mulaiDate = Carbon::parse($validated['jam_mulai_tanggal']);
+            $mulaiTime = $validated['jam_mulai_jam'] ?? '08:00';
+            $jamMulai = $mulaiDate->copy()->setTimeFromTimeString($mulaiTime . ':00');
+        }
 
         $createdCount = 0;
 
@@ -89,7 +139,8 @@ class PenugasanController extends Controller
                     'pengguna_id' => $penggunaId,
                     'ditugaskan_oleh' => Auth::id(),
                     'status' => 'pending',
-                    'tenggat_waktu' => $validated['tenggat_waktu'] ?? null,
+                    'tenggat_waktu' => $tenggatWaktu,
+                    'jam_mulai' => $jamMulai,
                     'catatan' => $validated['catatan'] ?? null,
                     'lokasi_latitude' => $validated['lokasi_latitude'] ?? null,
                     'lokasi_longitude' => $validated['lokasi_longitude'] ?? null,
@@ -115,7 +166,8 @@ class PenugasanController extends Controller
                     'pengguna_id' => $validated['pengguna_id'],
                     'ditugaskan_oleh' => Auth::id(),
                     'status' => 'pending',
-                    'tenggat_waktu' => $validated['tenggat_waktu'] ?? null,
+                    'tenggat_waktu' => $tenggatWaktu,
+                    'jam_mulai' => $jamMulai,
                     'catatan' => $validated['catatan'] ?? null,
                     'lokasi_latitude' => $validated['lokasi_latitude'] ?? null,
                     'lokasi_longitude' => $validated['lokasi_longitude'] ?? null,

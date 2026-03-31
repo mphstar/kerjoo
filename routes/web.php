@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\AbsensiController;
 use App\Http\Controllers\BidangController;
+use App\Http\Controllers\CronController;
 use App\Http\Controllers\HariLiburController;
 use App\Http\Controllers\ItemPenugasanController;
+use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\KomentarPenugasanController;
 use App\Http\Controllers\PenugasanController;
@@ -18,6 +20,9 @@ use Laravel\Fortify\Features;
 Route::get('/', function () {
     return redirect('/login');
 })->name('home');
+
+// Cron endpoint - no auth required, secured by secret key
+Route::get('/cron/schedule', [CronController::class, 'run'])->name('cron.schedule');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
@@ -159,6 +164,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             if ($request->has('search') && $request->search) {
                 $query->where(function ($q) use ($request) {
                     $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('username', 'like', '%' . $request->search . '%')
                         ->orWhere('email', 'like', '%' . $request->search . '%');
                 });
             }
@@ -441,6 +447,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('template-harian/trigger', [TemplatePenugasanHarianController::class, 'trigger'])->name('template-harian.trigger');
         Route::post('template-harian/trigger-all', [TemplatePenugasanHarianController::class, 'triggerAll'])->name('template-harian.trigger-all');
         Route::get('template-harian/list', [TemplatePenugasanHarianController::class, 'getTemplates'])->name('template-harian.list');
+
+        // Penjadwalan (Scheduling)
+        Route::get('jadwal', [JadwalController::class, 'index'])->name('jadwal.index');
+        Route::post('jadwal/run', [JadwalController::class, 'runManual'])->name('jadwal.run');
+        Route::post('jadwal/regenerate-key', [JadwalController::class, 'regenerateKey'])->name('jadwal.regenerate-key');
 
         // Report Route
         Route::get('report', function (\Illuminate\Http\Request $request) {
@@ -749,12 +760,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
             $query = \App\Models\Penugasan::with(['tugas.kategori', 'items'])
                 ->where('pengguna_id', Auth::id());
 
-            // Filter by created_at date range
+            // Filter by target date (jam_mulai fallback to created_at)
             if ($request->has('date_from') && $request->date_from) {
-                $query->whereDate('created_at', '>=', $request->date_from);
+                $query->where(function($q) use ($request) {
+                    $q->whereDate('jam_mulai', '>=', $request->date_from)
+                      ->orWhere(function($q2) use ($request) {
+                          $q2->whereNull('jam_mulai')->whereDate('created_at', '>=', $request->date_from);
+                      });
+                });
             }
             if ($request->has('date_to') && $request->date_to) {
-                $query->whereDate('created_at', '<=', $request->date_to);
+                $query->where(function($q) use ($request) {
+                    $q->whereDate('jam_mulai', '<=', $request->date_to)
+                      ->orWhere(function($q2) use ($request) {
+                          $q2->whereNull('jam_mulai')->whereDate('created_at', '<=', $request->date_to);
+                      });
+                });
             }
 
             return Inertia::render('pelaksana/tugas/index', [

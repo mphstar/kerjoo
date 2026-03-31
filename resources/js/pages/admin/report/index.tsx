@@ -205,7 +205,7 @@ export default function ReportIndex({
             case 'selesai':
                 return <Badge className="bg-emerald-100 text-emerald-700 gap-1"><CheckCircle2 className="h-3 w-3" /> Selesai</Badge>;
             case 'sedang_dikerjakan':
-                return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> Dikerjakan</Badge>;
+                return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> Sedang Dikerjakan</Badge>;
             default:
                 return <Badge variant="outline" className="text-amber-600 gap-1"><Target className="h-3 w-3" /> Pending</Badge>;
         }
@@ -403,7 +403,7 @@ export default function ReportIndex({
                     <Card>
                         <CardContent className="p-4">
                             <div className="text-2xl font-bold text-blue-600">{stats.dikerjakan}</div>
-                            <p className="text-sm text-muted-foreground">Dikerjakan</p>
+                            <p className="text-sm text-muted-foreground">Sedang Dikerjakan</p>
                         </CardContent>
                     </Card>
                     <Card>

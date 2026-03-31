@@ -83,7 +83,7 @@ export default function Dashboard({ stats, weeklyData, pelaksanaStats, recentPen
 
     const pieData = [
         { name: 'Selesai', value: stats.totalSelesai },
-        { name: 'Dikerjakan', value: stats.totalDikerjakan },
+        { name: 'Sedang Dikerjakan', value: stats.totalDikerjakan },
         { name: 'Pending', value: stats.totalPending },
     ];
 
@@ -92,7 +92,7 @@ export default function Dashboard({ stats, weeklyData, pelaksanaStats, recentPen
             case 'selesai':
                 return <Badge className="bg-emerald-100 text-emerald-700">Selesai</Badge>;
             case 'sedang_dikerjakan':
-                return <Badge variant="secondary">Dikerjakan</Badge>;
+                return <Badge variant="secondary">Sedang Dikerjakan</Badge>;
             default:
                 return <Badge variant="outline" className="text-amber-600">Pending</Badge>;
         }
@@ -238,7 +238,7 @@ export default function Dashboard({ stats, weeklyData, pelaksanaStats, recentPen
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="h-3 w-3 rounded-full bg-blue-500" />
-                                    <span className="text-sm text-muted-foreground">Dikerjakan ({stats.totalDikerjakan})</span>
+                                    <span className="text-sm text-muted-foreground">Sedang Dikerjakan ({stats.totalDikerjakan})</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="h-3 w-3 rounded-full bg-amber-500" />

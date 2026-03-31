@@ -155,7 +155,7 @@ export default function UsersIndex({ users, kategori }: Props) {
                         <thead className="bg-muted/50 font-medium">
                             <tr>
                                 <th className="p-4">Nama</th>
-                                <th className="p-4 hidden md:table-cell">Email</th>
+                                <th className="p-4 hidden md:table-cell">Username / Email</th>
                                 <th className="p-4">Peran</th>
                                 <th className="p-4 hidden lg:table-cell">Kategori</th>
                                 <th className="p-4 hidden lg:table-cell">No. Telepon</th>
@@ -173,11 +173,16 @@ export default function UsersIndex({ users, kategori }: Props) {
                                             </div>
                                             <div>
                                                 <div className="font-medium">{item.name}</div>
-                                                <div className="text-xs text-muted-foreground md:hidden">{item.email}</div>
+                                                <div className="text-xs text-muted-foreground md:hidden">{item.username || item.email}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="p-4 text-muted-foreground hidden md:table-cell">{item.email}</td>
+                                    <td className="p-4 text-muted-foreground hidden md:table-cell">
+                                        {item.username && (
+                                            <div className="font-medium text-foreground">{item.username}</div>
+                                        )}
+                                        <div className="text-xs">{item.email}</div>
+                                    </td>
                                     <td className="p-4">{getRoleBadge(item.peran)}</td>
                                     <td className="p-4 hidden lg:table-cell">
                                         {item.kategori ? (

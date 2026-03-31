@@ -34,6 +34,7 @@ export interface UraianTugas {
 export interface User {
     id: number;
     name: string;
+    username?: string;
     email: string;
     email_verified_at: string | null;
     peran: 'admin' | 'pelaksana' | 'pimpinan';
@@ -70,6 +71,7 @@ export interface Penugasan {
     ditugaskan_oleh: number;
     status: 'pending' | 'sedang_dikerjakan' | 'selesai';
     tenggat_waktu: string | null;
+    jam_mulai: string | null;
     waktu_mulai: string | null;
     waktu_selesai: string | null;
     catatan: string | null;
@@ -163,6 +165,7 @@ export interface TemplatePenugasanHarian {
     tipe: 'harian' | 'mingguan' | 'bulanan' | 'tahunan' | 'lainnya';
     pengguna_id: number;
     tenggat_waktu_jam: string;
+    jam_mulai: string;
     deadline_hari_berikutnya: boolean;
     catatan: string | null;
     lokasi_latitude: number | null;

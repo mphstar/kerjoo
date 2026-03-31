@@ -34,7 +34,7 @@ export default function Login({ status }: { status?: string }) {
                         <div className="mb-6 text-center">
                             <h2 className="text-xl font-semibold text-foreground">Masuk ke Akun</h2>
                             <p className="text-sm text-muted-foreground mt-1">
-                                Gunakan email dan password Anda
+                                Gunakan email/username dan password Anda
                             </p>
                         </div>
 
@@ -52,17 +52,17 @@ export default function Login({ status }: { status?: string }) {
                             {({ processing, errors }) => (
                                 <>
                                     <div className="space-y-2">
-                                        <Label htmlFor="email">Email</Label>
+                                        <Label htmlFor="email">Email atau Username</Label>
                                         <div className="relative">
                                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                             <Input
                                                 id="email"
-                                                type="email"
+                                                type="text"
                                                 name="email"
                                                 required
                                                 autoFocus
-                                                autoComplete="email"
-                                                placeholder="nama@email.com"
+                                                autoComplete="username"
+                                                placeholder="nama@email.com atau username"
                                                 className="pl-10 h-12 bg-background dark:bg-slate-950/50 border-input dark:border-slate-800"
                                             />
                                         </div>

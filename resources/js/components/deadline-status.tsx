@@ -34,21 +34,7 @@ export function getDeadlineInfo(deadline: string | null, status?: string): Deadl
 
     // Late
     if (diffMs < 0) {
-        const lateMinutes = Math.abs(diffMinutes);
-        const lateHours = Math.abs(diffHours);
-        const lateDays = Math.abs(diffDays);
-
-        let text: string;
-        if (lateDays >= 1) {
-            text = `Terlambat ${lateDays} hari`;
-        } else if (lateHours >= 1) {
-            const remainingMinutes = lateMinutes % 60;
-            text = remainingMinutes > 0
-                ? `Terlambat ${lateHours}j ${remainingMinutes}m`
-                : `Terlambat ${lateHours} jam`;
-        } else {
-            text = `Terlambat ${lateMinutes} menit`;
-        }
+        let text = 'Tidak Dikerjakan';
 
         return {
             isLate: true,

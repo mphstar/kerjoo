@@ -20,6 +20,7 @@ class Penugasan extends Model
         'ditugaskan_oleh',
         'status',
         'tenggat_waktu',
+        'jam_mulai',
         'waktu_mulai',
         'waktu_selesai',
         'catatan',
@@ -31,6 +32,7 @@ class Penugasan extends Model
 
     protected $casts = [
         'tenggat_waktu' => 'datetime',
+        'jam_mulai' => 'datetime',
         'waktu_mulai' => 'datetime',
         'waktu_selesai' => 'datetime',
         'lokasi_latitude' => 'decimal:8',

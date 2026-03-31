@@ -22,7 +22,7 @@ import { useTimerStore } from '@/stores/timer-store';
 import { useGeolocation } from '@/hooks/use-geolocation';
 import { type ItemPenugasan, type KomentarPenugasan, type Penugasan } from '@/types/logbook';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Clock, FileText, Pause, Play, ArrowLeft, CheckCircle, X, Loader2, Calendar, AlertTriangle, MapPin, Navigation, MapPinOff, Trash2, MessageCircle, Send } from 'lucide-react';
+import { Clock, FileText, Pause, Play, ArrowLeft, CheckCircle, X, Loader2, Calendar, AlertTriangle, MapPin, Navigation, MapPinOff, Trash2, MessageCircle, Send, Timer } from 'lucide-react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 
 interface Props {
@@ -138,9 +138,21 @@ export default function TugasDetail({ penugasan, items }: Props) {
                                         <DeadlineStatus deadline={penugasan.tenggat_waktu} status={penugasan.status} />
                                     </div>
                                 )}
+                                {penugasan.jam_mulai && (
+                                    <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 text-sm">
+                                        <Timer className="h-4 w-4 text-blue-500" />
+                                        <span className="text-muted-foreground">Jam Mulai:</span>
+                                        <span className="font-medium">{formatDeadlineDateTime(penugasan.jam_mulai)}</span>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Start Time Guard - Block when before jam_mulai */}
+                    {penugasan.jam_mulai && penugasan.status !== 'selesai' && (
+                        <StartTimeGuard jamMulai={penugasan.jam_mulai} />
+                    )}
 
                     {/* Location Status Card - Show when penugasan has location requirement */}
                     {penugasan.lokasi_latitude && penugasan.lokasi_longitude && penugasan.lokasi_radius && penugasan.status !== 'selesai' && (
@@ -506,6 +518,59 @@ function DurationSummaryCard({ items }: { items: ItemPenugasan[] }) {
     );
 }
 
+// Start Time Guard Component - blocks interaction before jam_mulai
+function StartTimeGuard({ jamMulai }: { jamMulai: string }) {
+    const [now, setNow] = useState(new Date());
+    const startTime = new Date(jamMulai);
+    const isBeforeStart = now < startTime;
+
+    useEffect(() => {
+        if (!isBeforeStart) return;
+        const interval = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(interval);
+    }, [isBeforeStart]);
+
+    if (!isBeforeStart) return null;
+
+    const diffMs = startTime.getTime() - now.getTime();
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+    const formatCountdown = () => {
+        const parts = [];
+        if (hours > 0) parts.push(`${hours} jam`);
+        if (minutes > 0) parts.push(`${minutes} menit`);
+        parts.push(`${seconds} detik`);
+        return parts.join(' ');
+    };
+
+    return (
+        <Card className="border-2 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+            <CardContent className="py-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-amber-500">
+                        <Timer className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-semibold text-sm text-amber-800 dark:text-amber-200">Belum Waktunya Mulai</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                            Tugas ini baru bisa dimulai pada <span className="font-semibold">{startTime.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        </p>
+                    </div>
+                </div>
+                <div className="mt-3 text-center">
+                    <p className="text-xs text-amber-600 dark:text-amber-400">Menunggu</p>
+                    <p className="text-2xl font-bold font-mono text-amber-700 dark:text-amber-300">
+                        {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+                    </p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400">({formatCountdown()})</p>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 // Location Status Card Component
 function LocationStatusCard({ penugasan }: { penugasan: Penugasan }) {
     const geo = useGeolocation();
@@ -642,6 +707,9 @@ function ItemCard({ item, requirements, penugasan }: { item: ItemPenugasan; requ
     // isTimerRunning considers both local state AND backend state
     // This ensures the UI works correctly even after page refresh
     const isTimerRunning = isActive || (item.status === 'sedang_dikerjakan' && item.waktu_mulai !== null);
+
+    // Check if current time is before jam_mulai
+    const isBeforeStartTime = penugasan.jam_mulai ? new Date() < new Date(penugasan.jam_mulai) : false;
 
     const [duration, setDuration] = useState(item.durasi_detik || 0);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -949,7 +1017,7 @@ function ItemCard({ item, requirements, penugasan }: { item: ItemPenugasan; requ
                                 variant={isTimerRunning ? "destructive" : "default"}
                                 onClick={handleToggleTimer}
                                 className="rounded-full h-10 w-10"
-                                disabled={(!isTimerRunning && isRunning) || isSubmitting}
+                                disabled={(!isTimerRunning && isRunning) || isSubmitting || isBeforeStartTime}
                             >
                                 {isSubmitting ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -968,6 +1036,12 @@ function ItemCard({ item, requirements, penugasan }: { item: ItemPenugasan; requ
                 {/* PRE-START INPUTS */}
                 {item.status === 'pending' && !isTimerRunning && (
                     <div className="space-y-4">
+                        {isBeforeStartTime && (
+                            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-md text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                                <Timer className="h-4 w-4 shrink-0" />
+                                Belum waktunya memulai tugas ini.
+                            </div>
+                        )}
                         {reqs?.foto && (
                             <div className="space-y-2">
                                 <Label>Foto Sebelum Pengerjaan <span className="text-red-500">*</span></Label>
@@ -987,7 +1061,7 @@ function ItemCard({ item, requirements, penugasan }: { item: ItemPenugasan; requ
                                     <CameraCapture
                                         label={isValidatingLocation ? "Memvalidasi lokasi..." : "Ambil Foto Sebelum & Mulai Timer"}
                                         onCapture={handleFotoSebelumCapture}
-                                        disabled={isSubmitting || isValidatingLocation}
+                                        disabled={isSubmitting || isValidatingLocation || isBeforeStartTime}
                                     />
                                 )}
                                 <p className="text-xs text-muted-foreground">Ambil foto kondisi sebelum memulai. Timer akan mulai otomatis.</p>

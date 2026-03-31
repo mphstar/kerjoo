@@ -73,7 +73,7 @@ export default function AdminPenugasanDetail({ penugasan, basePath: basePathProp
             case 'selesai':
                 return { label: 'Selesai', color: 'bg-green-500', bgColor: 'bg-green-100 dark:bg-green-900/30', textColor: 'text-green-700 dark:text-green-300' };
             case 'sedang_dikerjakan':
-                return { label: 'Dikerjakan', color: 'bg-blue-500', bgColor: 'bg-blue-100 dark:bg-blue-900/30', textColor: 'text-blue-700 dark:text-blue-300' };
+                return { label: 'Sedang Dikerjakan', color: 'bg-blue-500', bgColor: 'bg-blue-100 dark:bg-blue-900/30', textColor: 'text-blue-700 dark:text-blue-300' };
             default:
                 return { label: 'Belum Dikerjakan', color: 'bg-amber-500', bgColor: 'bg-amber-100 dark:bg-amber-900/30', textColor: 'text-amber-700 dark:text-amber-300' };
         }

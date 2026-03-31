@@ -17,6 +17,7 @@ class TemplatePenugasanHarian extends Model
         'tipe',
         'pengguna_id',
         'tenggat_waktu_jam',
+        'jam_mulai',
         'deadline_hari_berikutnya',
         'catatan',
         'lokasi_latitude',

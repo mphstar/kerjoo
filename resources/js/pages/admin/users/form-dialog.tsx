@@ -38,6 +38,7 @@ interface Props {
 export default function UserFormDialog({ open, onOpenChange, user, kategoriList }: Props) {
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         name: '',
+        username: '',
         email: '',
         password: '',
         peran: 'pelaksana' as 'admin' | 'pelaksana' | 'pimpinan',
@@ -54,6 +55,7 @@ export default function UserFormDialog({ open, onOpenChange, user, kategoriList 
         if (user) {
             setData({
                 name: user.name,
+                username: user.username || '',
                 email: user.email,
                 password: '', // Don't populate password on edit
                 peran: user.peran,
@@ -126,6 +128,18 @@ export default function UserFormDialog({ open, onOpenChange, user, kategoriList 
                                 required
                             />
                             {errors.name && <span className="text-sm text-destructive">{errors.name}</span>}
+                        </div>
+
+                        {/* Username */}
+                        <div className="grid gap-2">
+                            <Label htmlFor="username">Username <span className="text-xs text-muted-foreground">(Opsional)</span></Label>
+                            <Input
+                                id="username"
+                                value={data.username}
+                                onChange={(e) => setData('username', e.target.value)}
+                                placeholder="Pilih username unik"
+                            />
+                            {errors.username && <span className="text-sm text-destructive">{errors.username}</span>}
                         </div>
 
                         {/* Email */}

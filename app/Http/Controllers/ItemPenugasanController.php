@@ -63,6 +63,14 @@ class ItemPenugasanController extends Controller
             'longitude' => 'nullable|numeric|between:-180,180',
         ]);
 
+        // Validate jam_mulai - pelaksana cannot start before designated time
+        if ($penugasan->jam_mulai && now()->lt($penugasan->jam_mulai)) {
+            return redirect()->back()->with(
+                'error',
+                'Belum waktunya untuk memulai tugas ini. Jam mulai: ' . $penugasan->jam_mulai->format('d M Y H:i')
+            );
+        }
+
         // Validate location if penugasan has location requirement
         if ($penugasan->lokasi_latitude && $penugasan->lokasi_longitude && $penugasan->lokasi_radius) {
             // Location is required for this penugasan

@@ -18,13 +18,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { type Tugas, type User } from '@/types/logbook';
 import { router, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { CalendarIcon, Clock, Loader2, MapPin, Navigation } from 'lucide-react';
+import { CalendarIcon, Clock, Loader2, MapPin, Moon, Navigation, Play } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import LocationMap from '@/components/location-map';
 
@@ -43,12 +44,15 @@ export default function PenugasanDialog({ open, onOpenChange, tugasList, pelaksa
         tugas_id: '',
         pengguna_id: '',
         tenggat_waktu: undefined as Date | undefined,
-        tenggat_jam: '17:00', // Default time
+        tenggat_jam: '17:00',
+        jam_mulai_tanggal: undefined as Date | undefined,
+        jam_mulai_jam: '08:00',
+        deadline_hari_berikutnya: false,
         catatan: '',
         // Location fields
         lokasi_latitude: '',
         lokasi_longitude: '',
-        lokasi_radius: '100', // Default 100 meters
+        lokasi_radius: '100',
         lokasi_nama: '',
     });
 
@@ -62,6 +66,9 @@ export default function PenugasanDialog({ open, onOpenChange, tugasList, pelaksa
             pengguna_id: '',
             tenggat_waktu: undefined,
             tenggat_jam: '17:00',
+            jam_mulai_tanggal: undefined,
+            jam_mulai_jam: '08:00',
+            deadline_hari_berikutnya: false,
             catatan: '',
             lokasi_latitude: '',
             lokasi_longitude: '',
@@ -135,17 +142,14 @@ export default function PenugasanDialog({ open, onOpenChange, tugasList, pelaksa
         e.preventDefault();
         setProcessing(true);
 
-        // Combine date and time for full datetime
-        let tenggatWaktuFull: string | null = null;
-        if (data.tenggat_waktu) {
-            const dateStr = format(data.tenggat_waktu, 'yyyy-MM-dd');
-            tenggatWaktuFull = `${dateStr} ${data.tenggat_jam}:00`;
-        }
-
         router.post('/admin/penugasan', {
             tugas_id: data.tugas_id,
             pengguna_id: data.pengguna_id,
-            tenggat_waktu: tenggatWaktuFull,
+            tenggat_waktu: data.tenggat_waktu ? format(data.tenggat_waktu, 'yyyy-MM-dd') : null,
+            tenggat_jam: data.tenggat_jam,
+            jam_mulai_tanggal: data.jam_mulai_tanggal ? format(data.jam_mulai_tanggal, 'yyyy-MM-dd') : null,
+            jam_mulai_jam: data.jam_mulai_jam,
+            deadline_hari_berikutnya: data.deadline_hari_berikutnya,
             catatan: data.catatan,
             // Location fields - only send if coordinates are provided
             lokasi_latitude: data.lokasi_latitude || null,
@@ -226,8 +230,56 @@ export default function PenugasanDialog({ open, onOpenChange, tugasList, pelaksa
                                 {errors.tugas_id && <span className="text-sm text-destructive">{errors.tugas_id}</span>}
                             </div>
 
+                            {/* Jam Mulai */}
                             <div className="grid gap-2">
-                                <Label>Tenggat Waktu (Opsional)</Label>
+                                <Label className="flex items-center gap-2">
+                                    <Play className="h-4 w-4" />
+                                    Jam Mulai
+                                </Label>
+                                <div className="flex gap-2">
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                    "flex-1 justify-start text-left font-normal",
+                                                    !data.jam_mulai_tanggal && "text-muted-foreground"
+                                                )}
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {data.jam_mulai_tanggal ? format(data.jam_mulai_tanggal, "PPP", { locale: id }) : <span>Pilih Tanggal Mulai</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0 z-[1001]" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={data.jam_mulai_tanggal}
+                                                onSelect={(date: Date | undefined) => updateData('jam_mulai_tanggal', date)}
+                                                initialFocus
+                                                captionLayout="dropdown"
+                                                fromYear={new Date().getFullYear()}
+                                                toYear={new Date().getFullYear() + 5}
+                                                locale={id}
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <div className="relative w-[110px]">
+                                        <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input
+                                            type="time"
+                                            value={data.jam_mulai_jam}
+                                            onChange={(e) => updateData('jam_mulai_jam', e.target.value)}
+                                            className="pl-9"
+                                            disabled={!data.jam_mulai_tanggal}
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Pelaksana baru bisa mulai mengerjakan setelah jam ini</p>
+                            </div>
+
+                            {/* Tenggat Waktu */}
+                            <div className="grid gap-2">
+                                <Label>Tenggat Waktu (Deadline)</Label>
                                 <div className="flex gap-2">
                                     <Popover>
                                         <PopoverTrigger asChild>
@@ -268,6 +320,24 @@ export default function PenugasanDialog({ open, onOpenChange, tugasList, pelaksa
                                     </div>
                                 </div>
                                 {errors.tenggat_waktu && <span className="text-sm text-destructive">{errors.tenggat_waktu}</span>}
+                            </div>
+
+                            {/* Shift Malam Toggle */}
+                            <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="deadline_hari_berikutnya_single" className="flex items-center gap-2">
+                                        <Moon className="h-4 w-4" />
+                                        Shift Malam
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Deadline jatuh di hari berikutnya (H+1)
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="deadline_hari_berikutnya_single"
+                                    checked={data.deadline_hari_berikutnya}
+                                    onCheckedChange={checked => updateData('deadline_hari_berikutnya', checked)}
+                                />
                             </div>
 
                             <div className="grid gap-2">

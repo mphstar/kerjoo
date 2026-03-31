@@ -306,7 +306,7 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
             case 'selesai':
                 return <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 gap-1"><CheckCircle2 className="h-3 w-3" /> Selesai</Badge>;
             case 'sedang_dikerjakan':
-                return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> Dikerjakan</Badge>;
+                return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> Sedang Dikerjakan</Badge>;
             default:
                 return <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300"><Target className="h-3 w-3" /> Belum Dikerjakan</Badge>;
         }
@@ -406,7 +406,7 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
                             </div>
                             <div>
                                 <p className="text-2xl font-bold">{stats.active}</p>
-                                <p className="text-xs text-muted-foreground">Dikerjakan</p>
+                                <p className="text-xs text-muted-foreground">Sedang Dikerjakan</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -485,7 +485,7 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
                         <SelectContent>
                             <SelectItem value="all">Semua Status</SelectItem>
                             <SelectItem value="pending">Belum Dikerjakan</SelectItem>
-                            <SelectItem value="sedang_dikerjakan">Dikerjakan</SelectItem>
+                            <SelectItem value="sedang_dikerjakan">Sedang Dikerjakan</SelectItem>
                             <SelectItem value="selesai">Selesai</SelectItem>
                         </SelectContent>
                     </Select>
@@ -818,7 +818,7 @@ export default function PelaksanaDetail({ pelaksana, penugasan, tugasList, filte
                                     <SelectContent>
                                         <SelectItem value="all">Semua Status</SelectItem>
                                         <SelectItem value="pending">Belum Dikerjakan</SelectItem>
-                                        <SelectItem value="sedang_dikerjakan">Aktif / Dikerjakan</SelectItem>
+                                        <SelectItem value="sedang_dikerjakan">Aktif / Sedang Dikerjakan</SelectItem>
                                         <SelectItem value="selesai">Selesai</SelectItem>
                                     </SelectContent>
                                 </Select>

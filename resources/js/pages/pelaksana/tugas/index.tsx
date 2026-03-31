@@ -101,67 +101,78 @@ export default function TugasIndex({ penugasan, filters }: Props) {
         });
     }, [penugasan, activeFilter]);
 
-    // Sort tasks by created_at (newest first within each group)
+    // Sort tasks by target date (newest first within each group)
     const sortedTasks = useMemo(() => {
         return [...filteredTasks].sort((a, b) => {
             // Keep completed tasks at the end
             if (a.status === 'selesai' && b.status !== 'selesai') return 1;
             if (a.status !== 'selesai' && b.status === 'selesai') return -1;
-            // Sort by created_at descending (newest first)
-            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            
+            // Sort by target date descending
+            const targetA = a.jam_mulai || a.tenggat_waktu || a.created_at;
+            const targetB = b.jam_mulai || b.tenggat_waktu || b.created_at;
+            
+            const dateA = targetA ? new Date(targetA).getTime() : 0;
+            const dateB = targetB ? new Date(targetB).getTime() : 0;
             return dateB - dateA;
         });
     }, [filteredTasks]);
 
-    // Group tasks by created_at date
+    // Group tasks by target date
     const groupedTasks = useMemo(() => {
         const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
+        const todayStr = format(now, 'yyyy-MM-dd');
+        
+        const yesterdayDate = new Date();
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterdayStr = format(yesterdayDate, 'yyyy-MM-dd');
+        
+        const tomorrowDate = new Date();
+        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        const tomorrowStr = format(tomorrowDate, 'yyyy-MM-dd');
 
-        const groups: GroupedTasks = {};
+        const groups: Record<string, Penugasan[]> = {};
 
         sortedTasks.forEach((item) => {
-            let groupKey: string;
+            const targetStr = item.jam_mulai || item.tenggat_waktu || item.created_at;
+            let groupKey = 'none';
 
-            if (!item.created_at) {
-                groupKey = 'Tanpa Tanggal';
-            } else {
-                const createdDate = new Date(item.created_at);
-                const createdDateOnly = new Date(createdDate.getFullYear(), createdDate.getMonth(), createdDate.getDate());
-
-                if (createdDateOnly.getTime() === today.getTime()) {
-                    groupKey = 'Hari Ini';
-                } else if (createdDateOnly.getTime() === yesterday.getTime()) {
-                    groupKey = 'Kemarin';
-                } else {
-                    groupKey = createdDateOnly.toLocaleDateString('id-ID', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                    });
-                }
+            if (targetStr) {
+                const targetDate = new Date(targetStr);
+                groupKey = format(targetDate, 'yyyy-MM-dd');
             }
 
             if (!groups[groupKey]) groups[groupKey] = [];
             groups[groupKey].push(item);
         });
 
-        // Sort groups: Hari Ini first, then Kemarin, then by date descending
-        const sortedEntries = Object.entries(groups).sort(([a], [b]) => {
-            if (a === 'Hari Ini') return -1;
-            if (b === 'Hari Ini') return 1;
-            if (a === 'Kemarin') return -1;
-            if (b === 'Kemarin') return 1;
-            if (a === 'Tanpa Tanggal') return 1;
-            if (b === 'Tanpa Tanggal') return -1;
-            return 0;
+        // Convert to array and sort desc
+        const sortedArray = Object.entries(groups).sort(([dateA], [dateB]) => {
+            if (dateA === 'none') return 1;
+            if (dateB === 'none') return -1;
+            // date descending
+            return dateA < dateB ? 1 : (dateA > dateB ? -1 : 0);
         });
+        
+        // Map keys to readable labels
+        const finalGroups: Record<string, Penugasan[]> = {};
+        for (const [key, tasks] of sortedArray) {
+            let label = key;
+            if (key === 'none') {
+                label = 'Tanpa Tanggal';
+            } else if (key === todayStr) {
+                label = 'Hari Ini';
+            } else if (key === yesterdayStr) {
+                label = 'Kemarin';
+            } else if (key === tomorrowStr) {
+                label = 'Besok';
+            } else {
+                label = format(new Date(key), 'EEEE, d MMMM yyyy', { locale: id });
+            }
+            finalGroups[label] = tasks;
+        }
 
-        return Object.fromEntries(sortedEntries);
+        return finalGroups;
     }, [sortedTasks]);
 
     // Stats
@@ -402,6 +413,14 @@ export default function TugasIndex({ penugasan, filters }: Props) {
                                                                 <span className="flex items-center gap-1">
                                                                     <CalendarIcon className="h-3.5 w-3.5" />
                                                                     Tenggat: {formatDeadlineDateTime(item.tenggat_waktu)}
+                                                                </span>
+                                                            )}
+
+                                                            {/* Jam Mulai */}
+                                                            {item.jam_mulai && (
+                                                                <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                                                                    <Play className="h-3.5 w-3.5" />
+                                                                    Mulai: {formatDeadlineDateTime(item.jam_mulai)}
                                                                 </span>
                                                             )}
 

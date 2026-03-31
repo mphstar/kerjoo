@@ -94,6 +94,7 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
         pengguna_id: '',
         tugas_ids: [] as string[],
         tenggat_waktu_jam: '17:00',
+        jam_mulai: '08:00',
         deadline_hari_berikutnya: false,
         catatan: '',
         lokasi_latitude: '',
@@ -216,6 +217,7 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
             pengguna_id: item.pengguna_id?.toString() || '',
             tugas_ids: item.items?.map(i => i.tugas_id.toString()) || [],
             tenggat_waktu_jam: item.tenggat_waktu_jam || '17:00',
+            jam_mulai: item.jam_mulai || '08:00',
             deadline_hari_berikutnya: item.deadline_hari_berikutnya || false,
             catatan: item.catatan || '',
             lokasi_latitude: item.lokasi_latitude?.toString() || '',
@@ -420,6 +422,13 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
+                                            <Play className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                            <div>
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Jam Mulai</p>
+                                                <p className="text-xs font-medium">{template.jam_mulai || '08:00'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
                                             <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                             <div>
                                                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Deadline</p>
@@ -569,6 +578,20 @@ export default function TemplateHarianIndex({ templates, tugasList, pelaksanaLis
                                         )}
                                     </div>
                                     {errors.tugas_ids && <span className="text-sm text-destructive">{errors.tugas_ids}</span>}
+                                </div>
+
+                                {/* Jam Mulai */}
+                                <div className="grid gap-2">
+                                    <Label className="flex items-center gap-2">
+                                        <Play className="h-4 w-4" />
+                                        Jam Mulai
+                                    </Label>
+                                    <Input
+                                        type="time"
+                                        value={data.jam_mulai}
+                                        onChange={e => setData('jam_mulai', e.target.value)}
+                                    />
+                                    <p className="text-xs text-muted-foreground">Pelaksana baru bisa mulai setelah jam ini</p>
                                 </div>
 
                                 {/* Deadline Time */}

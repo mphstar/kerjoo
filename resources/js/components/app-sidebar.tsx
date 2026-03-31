@@ -13,7 +13,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Building2, UserPlus, Wrench, FileText, Users, Calendar, ClipboardList, Eye } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Building2, UserPlus, Wrench, FileText, Users, Calendar, ClipboardList, Eye, Clock } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const adminMainNavItems: NavItem[] = [
@@ -44,6 +44,11 @@ const adminMasterNavItems: NavItem[] = [
         title: 'Template Penugasan',
         href: '/admin/template-harian',
         icon: ClipboardList,
+    },
+    {
+        title: 'Penjadwalan',
+        href: '/admin/jadwal',
+        icon: Clock,
     },
 ];
 
