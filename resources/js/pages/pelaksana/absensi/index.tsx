@@ -16,6 +16,15 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import MobileLayout from '@/layouts/mobile-layout';
 import { type Absensi } from '@/types/logbook';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -23,9 +32,9 @@ import { format, parseISO, isToday } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import {
     Camera, Clock, ImagePlus, Trash2, CheckCircle2,
-    Calendar, ChevronDown, X, Upload
+    Calendar, ChevronDown, X, Upload, SwitchCamera, RefreshCw
 } from 'lucide-react';
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 
 interface Props {
     absensi: Absensi[];
@@ -47,7 +56,14 @@ export default function AbsensiIndex({ absensi, todayAbsensi, filters }: Props) 
     const [preview, setPreview] = useState<string | null>(null);
     const [viewImage, setViewImage] = useState<string | null>(null);
     const [customKeterangan, setCustomKeterangan] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    
+    // Camera states
+    const [cameraError, setCameraError] = useState(false);
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
 
     const form = useForm<{
         foto: File | null;
@@ -57,14 +73,79 @@ export default function AbsensiIndex({ absensi, todayAbsensi, filters }: Props) 
         keterangan: '',
     });
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            form.setData('foto', file);
-            const reader = new FileReader();
-            reader.onload = (ev) => setPreview(ev.target?.result as string);
-            reader.readAsDataURL(file);
+    const startCamera = async (mode = facingMode) => {
+        stopCamera();
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: mode }
+            });
+            streamRef.current = stream;
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+            setIsCameraOpen(true);
+        } catch (err) {
+            console.error("Error accessing camera:", err);
+            setCameraError(true);
         }
+    };
+
+    const stopCamera = useCallback(() => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        setIsCameraOpen(false);
+    }, []);
+
+    const toggleCamera = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const newMode = facingMode === 'user' ? 'environment' : 'user';
+        setFacingMode(newMode);
+        startCamera(newMode);
+    };
+
+    const capturePhoto = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (videoRef.current && canvasRef.current) {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            
+            // Wait for video dimensions
+            if (video.videoWidth === 0 || video.videoHeight === 0) return;
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                setPreview(dataUrl);
+
+                // Convert base64 to File object
+                fetch(dataUrl)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        const file = new File([blob], "absensi.jpg", { type: "image/jpeg" });
+                        form.setData('foto', file);
+                    });
+
+                stopCamera();
+            }
+        }
+    };
+
+    useEffect(() => {
+        return () => stopCamera();
+    }, [stopCamera]);
+
+    const handleCloseForm = () => {
+        setShowForm(false);
+        setPreview(null);
+        form.reset();
+        stopCamera();
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -82,7 +163,7 @@ export default function AbsensiIndex({ absensi, todayAbsensi, filters }: Props) 
                 setPreview(null);
                 setShowForm(false);
                 setCustomKeterangan(false);
-                if (fileInputRef.current) fileInputRef.current.value = '';
+                stopCamera();
             },
         });
     };
@@ -132,7 +213,10 @@ export default function AbsensiIndex({ absensi, todayAbsensi, filters }: Props) 
                     {!showForm && (
                         <Card
                             className="border-0 shadow-md cursor-pointer hover:shadow-lg transition-all active:scale-[0.99]"
-                            onClick={() => setShowForm(true)}
+                            onClick={() => {
+                                setShowForm(true);
+                                startCamera();
+                            }}
                         >
                             <CardContent className="p-4 flex items-center gap-3">
                                 <div className="p-2.5 rounded-xl bg-primary/10">
@@ -157,55 +241,86 @@ export default function AbsensiIndex({ absensi, todayAbsensi, filters }: Props) 
                                         variant="ghost"
                                         size="icon"
                                         className="h-7 w-7"
-                                        onClick={() => {
-                                            setShowForm(false);
-                                            setPreview(null);
-                                            form.reset();
-                                        }}
+                                        onClick={handleCloseForm}
                                     >
                                         <X className="h-4 w-4" />
                                     </Button>
                                 </div>
 
                                 <form onSubmit={handleSubmit} className="space-y-4">
-                                    {/* Photo Upload */}
+                                    {/* Camera Capture */}
                                     <div>
                                         <Label className="text-xs text-muted-foreground mb-2 block">Foto</Label>
+                                        
+                                        <canvas ref={canvasRef} className="hidden" />
+
                                         {preview ? (
-                                            <div className="relative rounded-xl overflow-hidden">
+                                            <div className="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 border">
                                                 <img
                                                     src={preview}
                                                     alt="Preview"
-                                                    className="w-full h-48 object-cover rounded-xl"
+                                                    className="w-full h-auto max-h-64 object-cover rounded-xl"
                                                 />
-                                                <Button
-                                                    type="button"
-                                                    variant="destructive"
-                                                    size="icon"
-                                                    className="absolute top-2 right-2 h-8 w-8 rounded-full shadow-lg"
-                                                    onClick={() => {
-                                                        setPreview(null);
-                                                        form.setData('foto', null);
-                                                        if (fileInputRef.current) fileInputRef.current.value = '';
-                                                    }}
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </Button>
+                                                <div className="absolute bottom-3 left-0 right-0 flex justify-center">
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="shadow-lg gap-2 rounded-full font-medium"
+                                                        onClick={() => {
+                                                            setPreview(null);
+                                                            form.setData('foto', null);
+                                                            startCamera();
+                                                        }}
+                                                    >
+                                                        <RefreshCw className="h-4 w-4" />
+                                                        Ulangi Foto
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : isCameraOpen ? (
+                                            <div className="relative rounded-xl overflow-hidden bg-black flex flex-col items-center border">
+                                                <video
+                                                    ref={videoRef}
+                                                    autoPlay
+                                                    playsInline
+                                                    className="w-full h-auto max-h-72 object-cover"
+                                                    style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
+                                                />
+                                                <div className="absolute top-2 right-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="icon"
+                                                        className="h-10 w-10 text-slate-800 rounded-full shadow-lg opacity-80 hover:opacity-100 bg-white hover:bg-slate-100"
+                                                        onClick={toggleCamera}
+                                                    >
+                                                        <SwitchCamera className="h-5 w-5" />
+                                                    </Button>
+                                                </div>
+                                                <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className="h-14 w-14 rounded-full shadow-2xl border-4 border-white/60 bg-white/20 hover:bg-white/40 active:scale-95 transition-all text-white"
+                                                        onClick={capturePhoto}
+                                                    >
+                                                        <Camera className="h-6 w-6" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                         ) : (
-                                            <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 cursor-pointer hover:bg-muted/50 transition-colors">
-                                                <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                                                <span className="text-sm text-muted-foreground">Ketuk untuk pilih foto</span>
-                                                <span className="text-xs text-muted-foreground/70 mt-1">JPG, PNG, WebP (maks 10MB)</span>
-                                                <input
-                                                    ref={fileInputRef}
-                                                    type="file"
-                                                    accept="image/jpeg,image/png,image/jpg,image/webp"
-                                                    capture="environment"
-                                                    className="hidden"
-                                                    onChange={handleFileChange}
-                                                />
-                                            </label>
+                                            <div 
+                                                className="flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 cursor-pointer hover:bg-primary/5 transition-colors bg-muted/30"
+                                                onClick={() => startCamera()}
+                                            >
+                                                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                                                    <Camera className="h-6 w-6 text-primary" />
+                                                </div>
+                                                <span className="text-sm text-foreground font-medium">Buka Kamera</span>
+                                                <span className="text-xs text-muted-foreground/70 mt-1">Ambil foto secara langsung</span>
+                                            </div>
                                         )}
                                         {form.errors.foto && (
                                             <p className="text-xs text-red-500 mt-1">{form.errors.foto}</p>
@@ -401,6 +516,23 @@ export default function AbsensiIndex({ absensi, todayAbsensi, filters }: Props) 
                     )}
                 </DialogContent>
             </Dialog>
+
+            {/* Camera Error Alert */}
+            <AlertDialog open={cameraError} onOpenChange={setCameraError}>
+                <AlertDialogContent className="w-[90%] rounded-2xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Akses Kamera Ditolak</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tidak dapat mengakses kamera. Pastikan Anda telah memberikan <b>izin akses kamera</b> pada pengaturan browser Anda.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction onClick={() => setCameraError(false)} className="rounded-xl">
+                            Mengerti
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </MobileLayout>
     );
 }

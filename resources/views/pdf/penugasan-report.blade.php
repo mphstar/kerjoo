@@ -220,7 +220,7 @@
 
         /* Signature Section */
         .signature-section {
-            margin-top: 50px;
+            margin-top: 25px;
             width: 100%;
             page-break-inside: avoid;
         }
@@ -232,12 +232,12 @@
 
         .signature-table td {
             width: 50%;
-            padding-top: 20px;
+            padding-top: 10px;
             vertical-align: bottom;
         }
 
         .signature-title {
-            margin-bottom: 70px;
+            margin-bottom: 45px;
         }
 
         .signature-name {
@@ -536,13 +536,25 @@
     <div class="signature-section">
         <table class="signature-table">
             <tr>
-                <td>
+                <td style="vertical-align: top;">
+                    <div style="margin-bottom: 4px;">&nbsp;</div>
                     <div class="signature-title">Mengetahui,<br>Admin / Pimpinan</div>
-                    <div class="signature-name">( _________________________ )</div>
+                    <div class="signature-name">{{ $adminName ?: '( _________________________ )' }}</div>
+                    @if($adminNip)
+                        <div style="margin-top: 3px; font-size: 9pt;">NIP/NRP. {{ $adminNip }}</div>
+                    @else
+                        <div style="margin-top: 3px; font-size: 9pt;">&nbsp;</div>
+                    @endif
                 </td>
-                <td>
+                <td style="vertical-align: top;">
+                    <div style="margin-bottom: 4px;">Jember, {{ $dateTo ? \Carbon\Carbon::parse($dateTo)->locale('id')->isoFormat('D MMMM YYYY') : now()->locale('id')->isoFormat('D MMMM YYYY') }}</div>
                     <div class="signature-title">Pelaksana Tugas</div>
                     <div class="signature-name">{{ $pelaksana->name }}</div>
+                    @if(isset($pelaksana->nip_nrp) && $pelaksana->nip_nrp)
+                        <div style="margin-top: 3px; font-size: 9pt;">NIP/NRP. {{ $pelaksana->nip_nrp }}</div>
+                    @else
+                        <div style="margin-top: 3px; font-size: 9pt;">&nbsp;</div>
+                    @endif
                 </td>
             </tr>
         </table>

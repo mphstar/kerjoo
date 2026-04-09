@@ -2,7 +2,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Form, Head, usePage } from '@inertiajs/react';
+import { Form, Head, usePage, Link } from '@inertiajs/react';
 import { Loader2, Mail, Lock, LogIn } from 'lucide-react';
 
 export default function Login({ status }: { status?: string }) {
@@ -52,7 +52,7 @@ export default function Login({ status }: { status?: string }) {
                             {({ processing, errors }) => (
                                 <>
                                     <div className="space-y-2">
-                                        <Label htmlFor="email">Email atau Username</Label>
+                                        <Label htmlFor="email">Username</Label>
                                         <div className="relative">
                                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                             <Input
@@ -62,7 +62,7 @@ export default function Login({ status }: { status?: string }) {
                                                 required
                                                 autoFocus
                                                 autoComplete="username"
-                                                placeholder="nama@email.com atau username"
+                                                placeholder="Masukkan username"
                                                 className="pl-10 h-12 bg-background dark:bg-slate-950/50 border-input dark:border-slate-800"
                                             />
                                         </div>
@@ -84,6 +84,15 @@ export default function Login({ status }: { status?: string }) {
                                             />
                                         </div>
                                         <InputError message={errors.password} />
+                                    </div>
+
+                                    <div className="flex justify-end -mt-3">
+                                        <Link
+                                            href="/forgot-password"
+                                            className="text-sm font-medium text-primary hover:underline hover:text-primary/80 transition-colors"
+                                        >
+                                            Lupa password?
+                                        </Link>
                                     </div>
 
                                     <Button

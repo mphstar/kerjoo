@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Penugasan;
 use App\Models\User;
+use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
@@ -42,8 +43,9 @@ class ReportController extends Controller
             return $item->created_at->format('Y-m-d');
         });
 
-        // Get admin user for signature (the one who assigned most tasks)
-        $adminUser = User::where('peran', 'admin')->first();
+        // Get signature details from global settings
+        $adminName = Setting::where('key', 'admin_signature_name')->value('value');
+        $adminNip = Setting::where('key', 'admin_signature_nip')->value('value');
 
         // Generate PDF
         $pdf = Pdf::loadView('pdf.penugasan-report', [
@@ -52,7 +54,8 @@ class ReportController extends Controller
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
             'status' => $status,
-            'adminUser' => $adminUser,
+            'adminName' => $adminName,
+            'adminNip' => $adminNip,
         ])->setPaper('a4', 'portrait');
 
         // Stream (preview) instead of download
@@ -72,10 +75,9 @@ class ReportController extends Controller
             'nip_nrp' => '199512012020011001',
         ];
 
-        // Create fake admin
-        $adminUser = (object) [
-            'name' => 'Ir. Supervisor Utama',
-        ];
+        // Get fake admin or settings
+        $adminName = Setting::where('key', 'admin_signature_name')->value('value') ?: 'Ir. Supervisor Utama';
+        $adminNip = Setting::where('key', 'admin_signature_nip')->value('value') ?: '19801010 200501 1 001';
 
         // Define task templates (with persyaratan for filtering)
         $taskTemplates = [
@@ -191,7 +193,8 @@ class ReportController extends Controller
             'dateFrom' => now()->subMonth()->format('Y-m-d'),
             'dateTo' => now()->format('Y-m-d'),
             'status' => null,
-            'adminUser' => $adminUser,
+            'adminName' => $adminName,
+            'adminNip' => $adminNip,
         ])->setPaper('a4', 'portrait');
 
         return $pdf->stream('laporan-dummy-preview.pdf');

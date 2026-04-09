@@ -28,7 +28,7 @@ interface Props {
 export default function UserAbsensi({ user, absensi, filters }: Props) {
     const [dateFrom, setDateFrom] = useState(filters.date_from || '');
     const [dateTo, setDateTo] = useState(filters.date_to || '');
-    const [viewImage, setViewImage] = useState<string | null>(null);
+    const [viewImage, setViewImage] = useState<Absensi | null>(null);
 
     const handleFilter = () => {
         router.get(`/admin/users/${user.id}/absensi`, {
@@ -149,12 +149,17 @@ export default function UserAbsensi({ user, absensi, filters }: Props) {
                                     {items.map((item) => (
                                         <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow">
                                             <CardContent className="p-0">
-                                                <img
-                                                    src={item.foto_url}
-                                                    alt={item.keterangan}
-                                                    className="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                                    onClick={() => setViewImage(item.foto_url || null)}
-                                                />
+                                                <div className="relative group cursor-pointer" onClick={() => setViewImage(item)}>
+                                                    <img
+                                                        src={item.foto_url}
+                                                        alt={item.keterangan}
+                                                        className="w-full h-48 object-cover group-hover:opacity-90 transition-opacity"
+                                                    />
+                                                    {/* Watermark */}
+                                                    <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm pointer-events-none">
+                                                        {format(new Date(item.created_at), 'dd/MM/yyyy HH:mm:ss', { locale: idLocale })}
+                                                    </div>
+                                                </div>
                                                 <div className="p-3">
                                                     <div className="font-medium text-sm">{item.keterangan}</div>
                                                     <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
@@ -179,11 +184,19 @@ export default function UserAbsensi({ user, absensi, filters }: Props) {
                         <DialogTitle>Foto Absensi</DialogTitle>
                     </DialogHeader>
                     {viewImage && (
-                        <img
-                            src={viewImage}
-                            alt="Foto Absensi"
-                            className="w-full max-h-[75vh] object-contain p-4"
-                        />
+                        <div className="relative w-full p-4 flex justify-center bg-black/5 dark:bg-black/40">
+                            <div className="relative inline-block max-h-[75vh]">
+                                <img
+                                    src={viewImage.foto_url}
+                                    alt="Foto Absensi"
+                                    className="w-auto h-auto max-w-full max-h-[75vh] object-contain rounded-md"
+                                />
+                                {/* Watermark Overlay */}
+                                <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs md:text-sm px-3 py-1.5 rounded-md backdrop-blur-md pointer-events-none shadow border border-white/10">
+                                    {format(new Date(viewImage.created_at), 'EEEE, d MMMM yyyy HH:mm:ss', { locale: idLocale })}
+                                </div>
+                            </div>
+                        </div>
                     )}
                 </DialogContent>
             </Dialog>
