@@ -141,6 +141,12 @@ export default function AbsensiIndex({ absensi, todayAbsensi, filters }: Props) 
         return () => stopCamera();
     }, [stopCamera]);
 
+    useEffect(() => {
+        if (isCameraOpen && videoRef.current && streamRef.current) {
+            videoRef.current.srcObject = streamRef.current;
+        }
+    }, [isCameraOpen]);
+
     const handleCloseForm = () => {
         setShowForm(false);
         setPreview(null);
