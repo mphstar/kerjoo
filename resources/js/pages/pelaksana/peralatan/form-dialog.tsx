@@ -16,53 +16,81 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { type MasterPeralatan } from '@/types/logbook';
 import { useForm } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Plus, Trash2, Search } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    masterPeralatan: MasterPeralatan[];
 }
 
 interface EquipmentItem {
+    master_peralatan_id: number | null;
     nama_peralatan: string;
     jumlah: number;
     satuan: string;
 }
 
-export default function PeralatanFormDialog({ open, onOpenChange }: Props) {
+export default function PeralatanFormDialog({ open, onOpenChange, masterPeralatan }: Props) {
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
 
     const [items, setItems] = useState<EquipmentItem[]>([
-        { nama_peralatan: '', jumlah: 1, satuan: '' },
+        { master_peralatan_id: null, nama_peralatan: '', jumlah: 1, satuan: '' },
     ]);
+
+    const [searchQueries, setSearchQueries] = useState<Record<number, string>>({});
 
     const { data, setData, post, processing, errors, reset } = useForm({
         bulan: currentMonth.toString(),
         tahun: currentYear.toString(),
-        items: items,
+        items: items.map(({ nama_peralatan, jumlah, satuan }) => ({ nama_peralatan, jumlah, satuan })),
     });
 
     const handleAddItem = () => {
-        const newItems = [...items, { nama_peralatan: '', jumlah: 1, satuan: '' }];
+        const newItems = [...items, { master_peralatan_id: null, nama_peralatan: '', jumlah: 1, satuan: '' }];
         setItems(newItems);
-        setData('items', newItems);
+        syncFormItems(newItems);
     };
 
     const handleRemoveItem = (index: number) => {
         const newItems = items.filter((_, i) => i !== index);
         setItems(newItems);
-        setData('items', newItems);
+        syncFormItems(newItems);
+        // Clean up search query
+        const newQueries = { ...searchQueries };
+        delete newQueries[index];
+        setSearchQueries(newQueries);
+    };
+
+    const handleSelectPeralatan = (index: number, peralatanId: string) => {
+        const selected = masterPeralatan.find((p) => p.id.toString() === peralatanId);
+        if (selected) {
+            const newItems = [...items];
+            newItems[index] = {
+                ...newItems[index],
+                master_peralatan_id: selected.id,
+                nama_peralatan: selected.nama,
+                satuan: selected.satuan,
+            };
+            setItems(newItems);
+            syncFormItems(newItems);
+        }
     };
 
     const handleItemChange = (index: number, field: keyof EquipmentItem, value: string | number) => {
         const newItems = [...items];
         newItems[index] = { ...newItems[index], [field]: value };
         setItems(newItems);
-        setData('items', newItems);
+        syncFormItems(newItems);
+    };
+
+    const syncFormItems = (currentItems: EquipmentItem[]) => {
+        setData('items', currentItems.map(({ nama_peralatan, jumlah, satuan }) => ({ nama_peralatan, jumlah, satuan })));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -71,7 +99,8 @@ export default function PeralatanFormDialog({ open, onOpenChange }: Props) {
         post('/pelaksana/peralatan', {
             onSuccess: () => {
                 onOpenChange(false);
-                setItems([{ nama_peralatan: '', jumlah: 1, satuan: '' }]);
+                setItems([{ master_peralatan_id: null, nama_peralatan: '', jumlah: 1, satuan: '' }]);
+                setSearchQueries({});
                 reset();
             },
         });
@@ -79,7 +108,8 @@ export default function PeralatanFormDialog({ open, onOpenChange }: Props) {
 
     const handleDialogOpenChange = (newOpen: boolean) => {
         if (!newOpen) {
-            setItems([{ nama_peralatan: '', jumlah: 1, satuan: '' }]);
+            setItems([{ master_peralatan_id: null, nama_peralatan: '', jumlah: 1, satuan: '' }]);
+            setSearchQueries({});
             reset();
         }
         onOpenChange(newOpen);
@@ -102,6 +132,11 @@ export default function PeralatanFormDialog({ open, onOpenChange }: Props) {
 
     const years = Array.from({ length: 5 }, (_, i) => currentYear + i);
 
+    // Get already-selected IDs to prevent duplicate selections
+    const selectedIds = items
+        .map((item) => item.master_peralatan_id)
+        .filter((id): id is number => id !== null);
+
     return (
         <Dialog open={open} onOpenChange={handleDialogOpenChange}>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -109,7 +144,7 @@ export default function PeralatanFormDialog({ open, onOpenChange }: Props) {
                     <DialogHeader>
                         <DialogTitle>Buat Permintaan Peralatan</DialogTitle>
                         <DialogDescription>
-                            Ajukan permintaan peralatan untuk periode tertentu
+                            Pilih peralatan dari daftar yang tersedia dan tentukan jumlah yang dibutuhkan
                         </DialogDescription>
                     </DialogHeader>
 
@@ -161,6 +196,13 @@ export default function PeralatanFormDialog({ open, onOpenChange }: Props) {
                                 </Button>
                             </div>
 
+                            {masterPeralatan.length === 0 && (
+                                <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+                                    <p>Belum ada data peralatan tersedia.</p>
+                                    <p className="text-xs mt-1">Hubungi admin untuk menambahkan master peralatan.</p>
+                                </div>
+                            )}
+
                             <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
                                 {items.map((item, index) => (
                                     <div key={index} className="border rounded-md p-3 space-y-2">
@@ -179,33 +221,59 @@ export default function PeralatanFormDialog({ open, onOpenChange }: Props) {
                                             )}
                                         </div>
 
-                                        <Input
-                                            placeholder="Nama Peralatan"
-                                            value={item.nama_peralatan}
-                                            onChange={(e) =>
-                                                handleItemChange(index, 'nama_peralatan', e.target.value)
-                                            }
-                                            required
-                                        />
+                                        {/* Equipment Select */}
+                                        <Select
+                                            value={item.master_peralatan_id?.toString() || ''}
+                                            onValueChange={(value) => handleSelectPeralatan(index, value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Pilih peralatan..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {masterPeralatan.map((p) => {
+                                                    const isAlreadySelected = selectedIds.includes(p.id) && p.id !== item.master_peralatan_id;
+                                                    return (
+                                                        <SelectItem
+                                                            key={p.id}
+                                                            value={p.id.toString()}
+                                                            disabled={isAlreadySelected}
+                                                        >
+                                                            <div className="flex items-center justify-between w-full gap-4">
+                                                                <span>{p.nama}</span>
+                                                                <span className="text-xs text-muted-foreground">({p.satuan})</span>
+                                                            </div>
+                                                        </SelectItem>
+                                                    );
+                                                })}
+                                            </SelectContent>
+                                        </Select>
 
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <Input
-                                                type="number"
-                                                placeholder="Jumlah"
-                                                min="1"
-                                                value={item.jumlah}
-                                                onChange={(e) =>
-                                                    handleItemChange(index, 'jumlah', parseInt(e.target.value) || 1)
-                                                }
-                                                required
-                                            />
-                                            <Input
-                                                placeholder="Satuan"
-                                                value={item.satuan}
-                                                onChange={(e) => handleItemChange(index, 'satuan', e.target.value)}
-                                                required
-                                            />
-                                        </div>
+                                        {/* Jumlah (only shown when peralatan is selected) */}
+                                        {item.master_peralatan_id && (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">Jumlah</Label>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="Jumlah"
+                                                        min="1"
+                                                        value={item.jumlah}
+                                                        onChange={(e) =>
+                                                            handleItemChange(index, 'jumlah', parseInt(e.target.value) || 1)
+                                                        }
+                                                        required
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">Satuan</Label>
+                                                    <Input
+                                                        value={item.satuan}
+                                                        disabled
+                                                        className="bg-muted"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -217,7 +285,10 @@ export default function PeralatanFormDialog({ open, onOpenChange }: Props) {
                         <Button type="button" variant="secondary" onClick={() => handleDialogOpenChange(false)}>
                             Batal
                         </Button>
-                        <Button type="submit" disabled={processing}>
+                        <Button
+                            type="submit"
+                            disabled={processing || items.every((i) => !i.master_peralatan_id)}
+                        >
                             Ajukan Permintaan
                         </Button>
                     </DialogFooter>

@@ -148,6 +148,44 @@ export interface DetailPeralatan {
     updated_at: string;
 }
 
+export interface MasterPeralatan {
+    id: number;
+    nama: string;
+    satuan: string;
+    deskripsi: string | null;
+    aktif: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PermintaanBbm {
+    id: number;
+    pengguna_id: number;
+    tanggal: string;
+    no_buku: string;
+    pengemudi: string;
+    uraian: string;
+    nama_kendaraan: string;
+    merk_kendaraan: string;
+    no_polisi: string;
+    km_awal: number;
+    bbm_awal_liter: number;
+    bbm_awal_persen: number;
+    bbm_liter: number;
+    bbm_harga_per_liter: number;
+    bbm_total_harga: number;
+    km_akhir: number | null;
+    bbm_akhir_liter: number | null;
+    bbm_akhir_persen: number | null;
+    status: string;
+    disetujui_oleh: number | null;
+    waktu_persetujuan: string | null;
+    catatan: string | null;
+    created_at: string;
+    updated_at: string;
+    pengguna?: { id: number; name: string; email: string; nip_nrp?: string };
+}
+
 export interface HariLibur {
     id: number;
     tanggal: string;

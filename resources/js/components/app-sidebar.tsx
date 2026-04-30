@@ -9,12 +9,19 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarGroup,
+    SidebarGroupLabel,
+    SidebarMenuSub,
+    SidebarMenuSubItem,
+    SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { dashboard } from '@/routes';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Building2, UserPlus, Wrench, FileText, Users, Calendar, ClipboardList, Eye, Clock } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Building2, UserPlus, Wrench, FileText, Users, Calendar, ClipboardList, Eye, Clock, ChevronRight, Package, Fuel } from 'lucide-react';
 import AppLogo from './app-logo';
+import { useActiveUrl } from '@/hooks/use-active-url';
 
 const adminMainNavItems: NavItem[] = [
     {
@@ -29,6 +36,11 @@ const adminMasterNavItems: NavItem[] = [
         title: 'Bidang',
         href: '/admin/bidang',
         icon: Building2,
+    },
+    {
+        title: 'Master Peralatan',
+        href: '/admin/master-peralatan',
+        icon: Wrench,
     },
     {
         title: 'Pengguna',
@@ -63,11 +75,12 @@ const adminLogbookNavItems: NavItem[] = [
         href: '/admin/report',
         icon: FileText,
     },
-    {
-        title: 'Permintaan Alat',
-        href: '/permintaan-peralatan',
-        icon: Wrench,
-    },
+];
+
+// Permintaan Pelaksana sub-items for admin sidebar
+const permintaanPelaksanaItems = [
+    { title: 'Peralatan', href: '/permintaan-peralatan' },
+    { title: 'BBM', href: '/permintaan-bbm' },
 ];
 
 const pimpinanMainNavItems: NavItem[] = [
@@ -96,6 +109,9 @@ const footerNavItems: NavItem[] = [];
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
     const isPimpinan = auth.user.peran === 'pimpinan';
+    const { urlIsActive } = useActiveUrl();
+
+    const isPermintaanActive = urlIsActive('/permintaan-peralatan') || urlIsActive('/permintaan-bbm');
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -121,7 +137,59 @@ export function AppSidebar() {
                     <>
                         <NavMain items={adminMainNavItems} label="Platform" />
                         <NavMain items={adminMasterNavItems} label="Master Data" />
-                        <NavMain items={adminLogbookNavItems} label="Logbook" />
+
+                        {/* Logbook section with collapsible Permintaan Pelaksana */}
+                        <SidebarGroup className="px-2 py-0">
+                            <SidebarGroupLabel>Logbook</SidebarGroupLabel>
+                            <SidebarMenu>
+                                {adminLogbookNavItems.map((item) => (
+                                    <SidebarMenuItem key={item.title}>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={urlIsActive(item.href)}
+                                            tooltip={{ children: item.title }}
+                                        >
+                                            <Link href={item.href} prefetch>
+                                                {item.icon && <item.icon />}
+                                                <span>{item.title}</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                ))}
+
+                                {/* Collapsible Permintaan Pelaksana */}
+                                <Collapsible asChild defaultOpen={isPermintaanActive} className="group/collapsible">
+                                    <SidebarMenuItem>
+                                        <CollapsibleTrigger asChild>
+                                            <SidebarMenuButton
+                                                tooltip={{ children: 'Permintaan Pelaksana' }}
+                                                isActive={isPermintaanActive}
+                                            >
+                                                <Package />
+                                                <span>Permintaan Pelaksana</span>
+                                                <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                            </SidebarMenuButton>
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                            <SidebarMenuSub>
+                                                {permintaanPelaksanaItems.map((sub) => (
+                                                    <SidebarMenuSubItem key={sub.title}>
+                                                        <SidebarMenuSubButton
+                                                            asChild
+                                                            isActive={urlIsActive(sub.href)}
+                                                        >
+                                                            <Link href={sub.href} prefetch>
+                                                                <span>{sub.title}</span>
+                                                            </Link>
+                                                        </SidebarMenuSubButton>
+                                                    </SidebarMenuSubItem>
+                                                ))}
+                                            </SidebarMenuSub>
+                                        </CollapsibleContent>
+                                    </SidebarMenuItem>
+                                </Collapsible>
+                            </SidebarMenu>
+                        </SidebarGroup>
                     </>
                 )}
             </SidebarContent>

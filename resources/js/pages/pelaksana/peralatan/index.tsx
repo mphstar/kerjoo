@@ -3,24 +3,40 @@ import MobileLayout from '@/layouts/mobile-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { type PermintaanPeralatan } from '@/types/logbook';
+import { type PermintaanPeralatan, type MasterPeralatan } from '@/types/logbook';
 import { Head, router, usePage } from '@inertiajs/react';
-import { CheckCircle, Clock, Package, Plus, Trash2, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import { CheckCircle, Clock, FileDown, Package, Plus, Trash2, XCircle } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import PeralatanFormDialog from './form-dialog';
 
 interface Props {
     permintaan: {
         data: PermintaanPeralatan[];
     };
+    masterPeralatan: MasterPeralatan[];
 }
 
-export default function PeralatanIndex({ permintaan }: Props) {
+type TabKey = 'pending' | 'disetujui' | 'ditolak';
+
+export default function PeralatanIndex({ permintaan, masterPeralatan }: Props) {
     const { url } = usePage();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [activeTab, setActiveTab] = useState<TabKey>('pending');
+
+    // Categorize data
+    const categorized = useMemo(() => {
+        const data = permintaan.data || [];
+        return {
+            pending: data.filter((item) => item.status === 'pending'),
+            disetujui: data.filter((item) => item.status === 'disetujui'),
+            ditolak: data.filter((item) => item.status === 'ditolak'),
+        };
+    }, [permintaan.data]);
+
+    const activeData = categorized[activeTab];
 
     const handleDelete = (id: number) => {
         setDeletingId(id);
@@ -74,6 +90,41 @@ export default function PeralatanIndex({ permintaan }: Props) {
         return `${namaBulan[bulan - 1]} ${tahun}`;
     };
 
+    const tabs: { key: TabKey; label: string; icon: React.ReactNode; color: string; activeColor: string }[] = [
+        {
+            key: 'pending',
+            label: 'Menunggu',
+            icon: <Clock className="h-4 w-4" />,
+            color: 'text-orange-500',
+            activeColor: 'bg-orange-500 text-white',
+        },
+        {
+            key: 'disetujui',
+            label: 'Disetujui',
+            icon: <CheckCircle className="h-4 w-4" />,
+            color: 'text-green-500',
+            activeColor: 'bg-green-500 text-white',
+        },
+        {
+            key: 'ditolak',
+            label: 'Ditolak',
+            icon: <XCircle className="h-4 w-4" />,
+            color: 'text-red-500',
+            activeColor: 'bg-red-500 text-white',
+        },
+    ];
+
+    const getEmptyMessage = (tab: TabKey) => {
+        switch (tab) {
+            case 'pending':
+                return 'Tidak ada permintaan yang menunggu persetujuan.';
+            case 'disetujui':
+                return 'Belum ada permintaan yang disetujui.';
+            case 'ditolak':
+                return 'Tidak ada permintaan yang ditolak.';
+        }
+    };
+
     return (
         <MobileLayout>
             <Head title="Permintaan Peralatan" />
@@ -83,6 +134,22 @@ export default function PeralatanIndex({ permintaan }: Props) {
                 <div className="bg-gradient-to-br from-primary via-primary to-primary/80 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-6 pb-8 pt-8 text-primary-foreground dark:text-white transition-all duration-300">
                     <h1 className="text-2xl font-bold">Permintaan Peralatan</h1>
                     <p className="opacity-90">Kelola permintaan peralatan kerja</p>
+
+                    {/* Summary Stats */}
+                    <div className="flex gap-3 mt-4">
+                        <div className="flex-1 bg-white/15 backdrop-blur-sm rounded-lg p-3 text-center">
+                            <div className="text-2xl font-bold">{categorized.pending.length}</div>
+                            <div className="text-xs opacity-80">Menunggu</div>
+                        </div>
+                        <div className="flex-1 bg-white/15 backdrop-blur-sm rounded-lg p-3 text-center">
+                            <div className="text-2xl font-bold">{categorized.disetujui.length}</div>
+                            <div className="text-xs opacity-80">Disetujui</div>
+                        </div>
+                        <div className="flex-1 bg-white/15 backdrop-blur-sm rounded-lg p-3 text-center">
+                            <div className="text-2xl font-bold">{categorized.ditolak.length}</div>
+                            <div className="text-xs opacity-80">Ditolak</div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Content */}
@@ -93,17 +160,46 @@ export default function PeralatanIndex({ permintaan }: Props) {
                         Buat Permintaan Baru
                     </Button>
 
+                    {/* Tabs */}
+                    <div className="flex rounded-lg bg-muted/60 dark:bg-slate-900 p-1 gap-1">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.key}
+                                onClick={() => setActiveTab(tab.key)}
+                                className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2.5 text-xs font-medium transition-all duration-200 ${
+                                    activeTab === tab.key
+                                        ? tab.activeColor + ' shadow-sm'
+                                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                                }`}
+                            >
+                                {tab.icon}
+                                <span>{tab.label}</span>
+                                <span
+                                    className={`ml-0.5 inline-flex items-center justify-center rounded-full text-[10px] font-bold min-w-[18px] h-[18px] px-1 ${
+                                        activeTab === tab.key
+                                            ? 'bg-white/25'
+                                            : 'bg-muted-foreground/15'
+                                    }`}
+                                >
+                                    {categorized[tab.key].length}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+
                     {/* Request Cards */}
-                    {permintaan.data.length === 0 ? (
+                    {activeData.length === 0 ? (
                         <Card className="border-dashed shadow-none">
                             <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                                 <Package className="h-12 w-12 mb-3 opacity-20" />
-                                <p className="text-sm">Belum ada permintaan peralatan.</p>
-                                <p className="text-xs mt-1">Buat permintaan baru untuk memulai.</p>
+                                <p className="text-sm">{getEmptyMessage(activeTab)}</p>
+                                {activeTab === 'pending' && (
+                                    <p className="text-xs mt-1">Buat permintaan baru untuk memulai.</p>
+                                )}
                             </CardContent>
                         </Card>
                     ) : (
-                        permintaan.data.map((item) => (
+                        activeData.map((item) => (
                             <Card key={item.id} className="shadow-sm">
                                 <CardContent className="p-4">
                                     <div className="flex items-start justify-between mb-3">
@@ -155,18 +251,52 @@ export default function PeralatanIndex({ permintaan }: Props) {
                                         </div>
                                     )}
 
-                                    {/* Actions */}
-                                    {item.status === 'pending' && (
-                                        <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            className="w-full"
-                                            onClick={() => handleDelete(item.id)}
-                                        >
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            Hapus Permintaan
-                                        </Button>
+                                    {/* Approval Info */}
+                                    {item.status !== 'pending' && item.waktu_persetujuan && (
+                                        <div className="mb-3 text-xs text-muted-foreground">
+                                            Diproses pada{' '}
+                                            {new Date(item.waktu_persetujuan).toLocaleDateString('id-ID', {
+                                                day: 'numeric',
+                                                month: 'long',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })}
+                                        </div>
                                     )}
+
+                                    {/* Actions */}
+                                    <div className="flex gap-2">
+                                        {/* Export PDF - Available for all statuses */}
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1"
+                                            asChild
+                                        >
+                                            <a
+                                                href={`/permintaan-peralatan/${item.id}/export-pdf`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
+                                                <FileDown className="mr-2 h-4 w-4" />
+                                                Export PDF
+                                            </a>
+                                        </Button>
+
+                                        {/* Delete - Only for pending */}
+                                        {item.status === 'pending' && (
+                                            <Button
+                                                variant="destructive"
+                                                size="sm"
+                                                className="flex-1"
+                                                onClick={() => handleDelete(item.id)}
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Hapus
+                                            </Button>
+                                        )}
+                                    </div>
                                 </CardContent>
                             </Card>
                         ))
@@ -174,7 +304,7 @@ export default function PeralatanIndex({ permintaan }: Props) {
                 </div>
             </div>
 
-            <PeralatanFormDialog open={isFormOpen} onOpenChange={setIsFormOpen} />
+            <PeralatanFormDialog open={isFormOpen} onOpenChange={setIsFormOpen} masterPeralatan={masterPeralatan || []} />
 
             <DeleteConfirmationDialog
                 open={deleteDialogOpen}

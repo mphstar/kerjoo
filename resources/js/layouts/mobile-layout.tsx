@@ -1,6 +1,6 @@
 import { PropsWithChildren } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { Home, ListChecks, User, Wrench } from 'lucide-react';
+import { Home, ListChecks, User, Package } from 'lucide-react';
 
 interface Props extends PropsWithChildren {
     showNavBar?: boolean;
@@ -32,7 +32,7 @@ function MobileNavBarContent({ currentPath = '' }: { currentPath?: string }) {
     const navItems = [
         { icon: Home, label: 'Beranda', href: '/pelaksana', path: '/pelaksana' },
         { icon: ListChecks, label: 'Tugas', href: '/pelaksana/tugas', path: '/pelaksana/tugas' },
-        { icon: Wrench, label: 'Peralatan', href: '/pelaksana/peralatan', path: '/pelaksana/peralatan' },
+        { icon: Package, label: 'Permintaan', href: '/pelaksana/permintaan', path: '/pelaksana/permintaan' },
         { icon: User, label: 'Profil', href: '/pelaksana/profil', path: '/pelaksana/profil' },
     ];
 

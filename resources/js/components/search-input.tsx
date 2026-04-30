@@ -18,6 +18,8 @@ const routeMap: Record<string, string> = {
     'penugasan.index': '/admin/penugasan',
     'users.index': '/admin/users',
     'permintaan-peralatan.index': '/admin/peralatan',
+    'master-peralatan.index': '/admin/master-peralatan',
+    'permintaan-bbm.index': '/permintaan-bbm',
 };
 
 export default function SearchInput({ placeholder = "Cari...", routeName, baseUrl, className }: Props) {

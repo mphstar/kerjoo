@@ -249,32 +249,38 @@
     @endif
 
     <div class="signature-section">
-        <div class="date-location">
-            {{ $lokasi }}, {{ $tanggalCetak }}
-        </div>
-
         <table style="width: 100%;">
             <tr>
-
                 <td style="width: 50%; text-align: center; vertical-align: top;">
-                    <div style="font-weight: bold; margin-bottom: 60px;">Mengetahui/Menyetujui,</div>
+                    <div>&nbsp;</div>
+                    <div style="font-weight: bold; margin-bottom: 60px;">Mengetahui,<br>Admin / Pimpinan</div>
                     <div
-                        style="font-weight: bold; border-top: 1px solid #333; padding-top: 5px; display: inline-block; min-width: 150px;">
-                        {{ $permintaan->disetujuiOleh->name ?? '________________' }}
+                        style="font-weight: bold; text-decoration: underline; display: inline-block; min-width: 150px;">
+                        {{ $adminName ?: '( _________________________ )' }}
                     </div>
-                    <div style="font-size: 10pt; color: #666;">Penanggung Jawab</div>
+                    @if(isset($adminNip) && $adminNip)
+                        <div style="font-size: 10pt; margin-top: 3px;">NIP/NRP. {{ $adminNip }}</div>
+                    @else
+                        <div style="font-size: 10pt; margin-top: 3px;">&nbsp;</div>
+                    @endif
                 </td>
                 <td style="width: 50%; text-align: center; vertical-align: top;">
+                    <div style="margin-bottom: 4px;">{{ $lokasi }}, {{ $tanggalCetak }}</div>
                     <div style="font-weight: bold; margin-bottom: 60px;">Yang Mengajukan,</div>
                     <div
-                        style="font-weight: bold; border-top: 1px solid #333; padding-top: 5px; display: inline-block; min-width: 150px;">
+                        style="font-weight: bold; text-decoration: underline; display: inline-block; min-width: 150px;">
                         {{ $permintaan->pengguna->name ?? '________________' }}
                     </div>
-                    <div style="font-size: 10pt; color: #666;">Pelaksana</div>
+                    @if(isset($permintaan->pengguna->nip_nrp) && $permintaan->pengguna->nip_nrp)
+                        <div style="font-size: 10pt; margin-top: 3px;">NIP/NRP. {{ $permintaan->pengguna->nip_nrp }}</div>
+                    @else
+                        <div style="font-size: 10pt; margin-top: 3px;">&nbsp;</div>
+                    @endif
                 </td>
             </tr>
         </table>
     </div>
+
 </body>
 
 </html>

@@ -12,6 +12,8 @@ use App\Http\Controllers\PenugasanController;
 use App\Http\Controllers\TemplatePenugasanHarianController;
 use App\Http\Controllers\TugasController;
 use App\Http\Controllers\UraianTugasController;
+use App\Http\Controllers\MasterPeralatanController;
+use App\Http\Controllers\PermintaanBbmController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -448,6 +450,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('template-harian/trigger-all', [TemplatePenugasanHarianController::class, 'triggerAll'])->name('template-harian.trigger-all');
         Route::get('template-harian/list', [TemplatePenugasanHarianController::class, 'getTemplates'])->name('template-harian.list');
 
+        // Master Peralatan
+        Route::get('master-peralatan', function (\Illuminate\Http\Request $request) {
+            $query = \App\Models\MasterPeralatan::query();
+
+            if ($request->has('search') && $request->search) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('nama', 'like', '%' . $request->search . '%')
+                        ->orWhere('deskripsi', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            $perPage = $request->input('per_page', 10);
+            return Inertia::render('admin/master-peralatan/index', [
+                'peralatan' => $query->orderBy('nama')->paginate($perPage)->withQueryString()
+            ]);
+        })->name('master-peralatan.index');
+
+        Route::post('master-peralatan', [MasterPeralatanController::class, 'store'])->name('master-peralatan.store');
+        Route::put('master-peralatan/{id}', [MasterPeralatanController::class, 'update'])->name('master-peralatan.update');
+        Route::delete('master-peralatan/{id}', [MasterPeralatanController::class, 'destroy'])->name('master-peralatan.destroy');
+        Route::patch('master-peralatan/{id}/toggle', [MasterPeralatanController::class, 'toggleActive'])->name('master-peralatan.toggle');
+
         // Penjadwalan (Scheduling)
         Route::get('jadwal', [JadwalController::class, 'index'])->name('jadwal.index');
         Route::post('jadwal/run', [JadwalController::class, 'runManual'])->name('jadwal.run');
@@ -808,15 +832,50 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Permintaan Peralatan
         Route::get('peralatan', function () {
             return Inertia::render('pelaksana/peralatan/index', [
-                'permintaan' => \App\Models\PermintaanPeralatan::with('details')
-                    ->where('pengguna_id', Auth::id())
-                    ->latest()
-                    ->paginate(10)
+                'permintaan' => [
+                    'data' => \App\Models\PermintaanPeralatan::with('details')
+                        ->where('pengguna_id', Auth::id())
+                        ->latest()
+                        ->get(),
+                ],
+                'masterPeralatan' => \App\Models\MasterPeralatan::aktif()->orderBy('nama')->get(),
             ]);
         })->name('pelaksana.peralatan.index');
 
         Route::post('peralatan', [App\Http\Controllers\PermintaanPeralatanController::class, 'store'])->name('pelaksana.peralatan.store');
         Route::delete('peralatan/{id}', [App\Http\Controllers\PermintaanPeralatanController::class, 'destroy'])->name('pelaksana.peralatan.destroy');
+
+        // Permintaan BBM
+        Route::get('bbm', function () {
+            return Inertia::render('pelaksana/bbm/index', [
+                'permintaan' => [
+                    'data' => \App\Models\PermintaanBbm::where('pengguna_id', Auth::id())
+                        ->latest()
+                        ->get(),
+                ],
+            ]);
+        })->name('pelaksana.bbm.index');
+
+        Route::post('bbm', [PermintaanBbmController::class, 'store'])->name('pelaksana.bbm.store');
+        Route::delete('bbm/{id}', [PermintaanBbmController::class, 'destroy'])->name('pelaksana.bbm.destroy');
+
+        // Halaman gabungan Permintaan (Peralatan + BBM)
+        Route::get('permintaan', function () {
+            return Inertia::render('pelaksana/permintaan/index', [
+                'permintaanPeralatan' => [
+                    'data' => \App\Models\PermintaanPeralatan::with('details')
+                        ->where('pengguna_id', Auth::id())
+                        ->latest()
+                        ->get(),
+                ],
+                'permintaanBbm' => [
+                    'data' => \App\Models\PermintaanBbm::where('pengguna_id', Auth::id())
+                        ->latest()
+                        ->get(),
+                ],
+                'masterPeralatan' => \App\Models\MasterPeralatan::aktif()->orderBy('nama')->get(),
+            ]);
+        })->name('pelaksana.permintaan.index');
 
         // Absensi
         Route::get('absensi', function (\Illuminate\Http\Request $request) {
@@ -884,6 +943,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('permintaan-peralatan/{id}/reject', [App\Http\Controllers\PermintaanPeralatanController::class, 'reject'])->name('permintaan-peralatan.reject');
     Route::delete('permintaan-peralatan/{id}', [App\Http\Controllers\PermintaanPeralatanController::class, 'destroy'])->name('permintaan-peralatan.destroy');
     Route::get('permintaan-peralatan/{id}/export-pdf', [App\Http\Controllers\PermintaanPeralatanController::class, 'exportPdf'])->name('permintaan-peralatan.export-pdf');
+
+    // Permintaan BBM (Shared Routes)
+    Route::get('permintaan-bbm', function () {
+        $user = Auth::user();
+
+        if ($user->peran === 'admin') {
+            return Inertia::render('admin/bbm/index', [
+                'permintaan' => \App\Models\PermintaanBbm::with('pengguna')
+                    ->latest()
+                    ->paginate(10)
+            ]);
+        }
+
+        return redirect()->route('pelaksana.permintaan.index');
+    })->name('permintaan-bbm.index');
+
+    Route::post('permintaan-bbm/{id}/approve', [PermintaanBbmController::class, 'approve'])->name('permintaan-bbm.approve');
+    Route::post('permintaan-bbm/{id}/reject', [PermintaanBbmController::class, 'reject'])->name('permintaan-bbm.reject');
+    Route::delete('permintaan-bbm/{id}', [PermintaanBbmController::class, 'destroy'])->name('permintaan-bbm.destroy');
+    Route::get('permintaan-bbm/{id}/export-pdf', [PermintaanBbmController::class, 'exportPdf'])->name('permintaan-bbm.export-pdf');
 });
 
 require __DIR__ . '/settings.php';

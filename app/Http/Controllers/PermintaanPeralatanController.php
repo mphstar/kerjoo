@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PermintaanPeralatan;
 use App\Models\DetailPeralatan;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -126,6 +127,10 @@ class PermintaanPeralatanController extends Controller
         $tanggalCetak = now()->format('d F Y');
         $lokasi = 'Jember'; // Change this as needed
 
+        // Get signature details from global settings (same as penugasan PDF)
+        $adminName = Setting::where('key', 'admin_signature_name')->value('value');
+        $adminNip = Setting::where('key', 'admin_signature_nip')->value('value');
+
         $filename = 'Permintaan-Peralatan-' . $periode . '-' . $permintaan->pengguna->name . '.pdf';
         $filename = str_replace(' ', '-', $filename);
 
@@ -134,6 +139,8 @@ class PermintaanPeralatanController extends Controller
             'periode' => $periode,
             'tanggalCetak' => $tanggalCetak,
             'lokasi' => $lokasi,
+            'adminName' => $adminName,
+            'adminNip' => $adminNip,
         ])
             ->setPaper('a4', 'portrait')
             ->stream($filename);
