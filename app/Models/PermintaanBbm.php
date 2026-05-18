@@ -30,6 +30,7 @@ class PermintaanBbm extends Model
         'km_akhir',
         'bbm_akhir_liter',
         'bbm_akhir_persen',
+        'lampiran_foto',
         'status',
         'disetujui_oleh',
         'waktu_persetujuan',
@@ -47,8 +48,17 @@ class PermintaanBbm extends Model
         'km_akhir' => 'decimal:1',
         'bbm_akhir_liter' => 'decimal:1',
         'bbm_akhir_persen' => 'integer',
+        'lampiran_foto' => 'array',
         'waktu_persetujuan' => 'datetime',
     ];
+
+    protected $appends = ['lampiran_foto_urls'];
+
+    public function getLampiranFotoUrlsAttribute(): array
+    {
+        $fotos = $this->lampiran_foto ?? [];
+        return array_map(fn($foto) => asset('uploads/bbm/' . $foto), $fotos);
+    }
 
     public function pengguna(): BelongsTo
     {

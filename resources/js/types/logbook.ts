@@ -177,6 +177,8 @@ export interface PermintaanBbm {
     km_akhir: number | null;
     bbm_akhir_liter: number | null;
     bbm_akhir_persen: number | null;
+    lampiran_foto: string[] | null;
+    lampiran_foto_urls: string[];
     status: string;
     disetujui_oleh: number | null;
     waktu_persetujuan: string | null;

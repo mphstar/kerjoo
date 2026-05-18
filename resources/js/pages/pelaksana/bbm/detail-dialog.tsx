@@ -1,18 +1,15 @@
-import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { type PermintaanBbm } from '@/types/logbook';
-import { router } from '@inertiajs/react';
-import { CheckCircle, XCircle, ImageIcon, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ImageIcon, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -41,7 +38,6 @@ function PhotoLightbox({
         setCurrentIndex((prev) => (prev - 1 + urls.length) % urls.length);
     }, [urls.length]);
 
-    // Keyboard navigation
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') onClose();
@@ -52,7 +48,6 @@ function PhotoLightbox({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [onClose, goNext, goPrev]);
 
-    // Reset index when initialIndex changes
     useEffect(() => {
         setCurrentIndex(initialIndex);
     }, [initialIndex]);
@@ -62,7 +57,6 @@ function PhotoLightbox({
             className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center"
             onClick={onClose}
         >
-            {/* Close button */}
             <button
                 type="button"
                 onClick={onClose}
@@ -71,26 +65,20 @@ function PhotoLightbox({
                 <X className="h-6 w-6" />
             </button>
 
-            {/* Counter */}
             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 text-white text-sm font-medium px-4 py-1.5 rounded-full z-20">
                 {currentIndex + 1} / {urls.length}
             </div>
 
-            {/* Previous button */}
             {urls.length > 1 && (
                 <button
                     type="button"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        goPrev();
-                    }}
+                    onClick={(e) => { e.stopPropagation(); goPrev(); }}
                     className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white rounded-full p-2.5 transition-colors z-20"
                 >
                     <ChevronLeft className="h-7 w-7" />
                 </button>
             )}
 
-            {/* Image */}
             <img
                 src={urls[currentIndex]}
                 alt={`Lampiran ${currentIndex + 1}`}
@@ -99,43 +87,30 @@ function PhotoLightbox({
                 draggable={false}
             />
 
-            {/* Next button */}
             {urls.length > 1 && (
                 <button
                     type="button"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        goNext();
-                    }}
+                    onClick={(e) => { e.stopPropagation(); goNext(); }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white rounded-full p-2.5 transition-colors z-20"
                 >
                     <ChevronRight className="h-7 w-7" />
                 </button>
             )}
 
-            {/* Thumbnail strip */}
             {urls.length > 1 && (
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/50 backdrop-blur-sm rounded-xl px-3 py-2 z-20">
                     {urls.map((url, index) => (
                         <button
                             key={index}
                             type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setCurrentIndex(index);
-                            }}
+                            onClick={(e) => { e.stopPropagation(); setCurrentIndex(index); }}
                             className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${
                                 index === currentIndex
                                     ? 'border-white ring-1 ring-white/50 scale-110'
                                     : 'border-transparent opacity-60 hover:opacity-100'
                             }`}
                         >
-                            <img
-                                src={url}
-                                alt={`Thumb ${index + 1}`}
-                                className="w-full h-full object-cover"
-                                draggable={false}
-                            />
+                            <img src={url} alt={`Thumb ${index + 1}`} className="w-full h-full object-cover" draggable={false} />
                         </button>
                     ))}
                 </div>
@@ -145,42 +120,10 @@ function PhotoLightbox({
     );
 }
 
-export default function BbmDetailDialog({ open, onOpenChange, permintaan }: Props) {
-    const [catatan, setCatatan] = useState('');
-    const [processing, setProcessing] = useState(false);
+export default function BbmDetailDialogPelaksana({ open, onOpenChange, permintaan }: Props) {
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
     if (!permintaan) return null;
-
-    const handleApprove = () => {
-        setProcessing(true);
-        router.post(
-            `/permintaan-bbm/${permintaan.id}/approve`,
-            { catatan },
-            {
-                onFinish: () => {
-                    setProcessing(false);
-                    onOpenChange(false);
-                    setCatatan('');
-                },
-            }
-        );
-    };
-
-    const handleReject = () => {
-        setProcessing(true);
-        router.post(
-            `/permintaan-bbm/${permintaan.id}/reject`,
-            { catatan },
-            {
-                onFinish: () => {
-                    setProcessing(false);
-                    onOpenChange(false);
-                    setCatatan('');
-                },
-            }
-        );
-    };
 
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -208,7 +151,7 @@ export default function BbmDetailDialog({ open, onOpenChange, permintaan }: Prop
                     <DialogHeader>
                         <DialogTitle>Detail Permintaan BBM</DialogTitle>
                         <DialogDescription>
-                            Permintaan dari {permintaan.pengemudi} — {permintaan.uraian}
+                            {permintaan.nama_kendaraan} — {permintaan.uraian}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -348,19 +291,8 @@ export default function BbmDetailDialog({ open, onOpenChange, permintaan }: Prop
                             </div>
                         )}
 
-                        {/* Catatan/Approval */}
-                        {permintaan.status === 'pending' ? (
-                            <div>
-                                <Label htmlFor="catatan">Catatan (Opsional)</Label>
-                                <Textarea
-                                    id="catatan"
-                                    value={catatan}
-                                    onChange={(e) => setCatatan(e.target.value)}
-                                    placeholder="Tambahkan catatan untuk permintaan ini..."
-                                    rows={3}
-                                />
-                            </div>
-                        ) : (
+                        {/* Catatan & Status Info */}
+                        {permintaan.status !== 'pending' && (
                             <div className="space-y-2">
                                 {permintaan.waktu_persetujuan && (
                                     <div className="text-sm">
@@ -380,29 +312,12 @@ export default function BbmDetailDialog({ open, onOpenChange, permintaan }: Prop
                         )}
                     </div>
 
-                    <DialogFooter>
-                        {permintaan.status === 'pending' ? (
-                            <>
-                                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
-                                    Tutup
-                                </Button>
-                                <Button type="button" variant="destructive" onClick={handleReject} disabled={processing}>
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Tolak
-                                </Button>
-                                <Button type="button" className="bg-green-600 hover:bg-green-700" onClick={handleApprove} disabled={processing}>
-                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                    Setujui
-                                </Button>
-                            </>
-                        ) : (
-                            <Button type="button" onClick={() => onOpenChange(false)}>Tutup</Button>
-                        )}
-                    </DialogFooter>
+                    <div className="flex justify-end pt-2">
+                        <Button type="button" onClick={() => onOpenChange(false)}>Tutup</Button>
+                    </div>
                 </DialogContent>
             </Dialog>
 
-            {/* Lightbox - rendered via portal outside Dialog to prevent close propagation */}
             {lightboxIndex !== null && fotoUrls.length > 0 && (
                 <PhotoLightbox
                     urls={fotoUrls}

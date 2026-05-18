@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useForm, usePage } from '@inertiajs/react';
-import { FormEvent, useEffect } from 'react';
+import { Camera, ImagePlus, X } from 'lucide-react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 
 interface Props {
     open: boolean;
@@ -21,6 +22,8 @@ interface Props {
 export default function BbmFormDialog({ open, onOpenChange }: Props) {
     const { props } = usePage();
     const userName = (props.auth as any)?.user?.name || '';
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         tanggal: new Date().toISOString().split('T')[0],
@@ -38,6 +41,7 @@ export default function BbmFormDialog({ open, onOpenChange }: Props) {
         km_akhir: '',
         bbm_akhir_liter: '',
         bbm_akhir_persen: '',
+        lampiran_foto: [] as File[],
     });
 
     useEffect(() => {
@@ -45,6 +49,7 @@ export default function BbmFormDialog({ open, onOpenChange }: Props) {
             reset();
             setData('pengemudi', userName);
             setData('tanggal', new Date().toISOString().split('T')[0]);
+            setPreviewUrls([]);
         }
     }, [open]);
 
@@ -56,10 +61,51 @@ export default function BbmFormDialog({ open, onOpenChange }: Props) {
         setData('bbm_total_harga', total > 0 ? total.toString() : '');
     }, [data.bbm_liter, data.bbm_harga_per_liter]);
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        const currentFiles = data.lampiran_foto || [];
+        const totalFiles = currentFiles.length + files.length;
+
+        if (totalFiles > 5) {
+            alert('Maksimal 5 foto yang dapat diunggah.');
+            return;
+        }
+
+        const newFiles = [...currentFiles, ...files];
+        setData('lampiran_foto', newFiles);
+
+        // Generate preview URLs
+        const newPreviews = files.map((file) => URL.createObjectURL(file));
+        setPreviewUrls((prev) => [...prev, ...newPreviews]);
+
+        // Reset file input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const removePhoto = (index: number) => {
+        const newFiles = [...data.lampiran_foto];
+        newFiles.splice(index, 1);
+        setData('lampiran_foto', newFiles);
+
+        // Revoke the old preview URL and remove it
+        URL.revokeObjectURL(previewUrls[index]);
+        const newPreviews = [...previewUrls];
+        newPreviews.splice(index, 1);
+        setPreviewUrls(newPreviews);
+    };
+
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         post('/pelaksana/bbm', {
+            forceFormData: true,
             onSuccess: () => {
+                // Cleanup preview URLs
+                previewUrls.forEach((url) => URL.revokeObjectURL(url));
+                setPreviewUrls([]);
                 onOpenChange(false);
                 reset();
             },
@@ -68,6 +114,9 @@ export default function BbmFormDialog({ open, onOpenChange }: Props) {
 
     const handleDialogOpenChange = (newOpen: boolean) => {
         if (!newOpen) {
+            // Cleanup preview URLs
+            previewUrls.forEach((url) => URL.revokeObjectURL(url));
+            setPreviewUrls([]);
             reset();
         }
         onOpenChange(newOpen);
@@ -289,6 +338,64 @@ export default function BbmFormDialog({ open, onOpenChange }: Props) {
                                     {errors.bbm_akhir_persen && <span className="text-xs text-destructive">{errors.bbm_akhir_persen}</span>}
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Lampiran Foto */}
+                        <div className="space-y-2">
+                            <Label className="text-sm font-semibold">
+                                <Camera className="inline-block mr-1.5 h-4 w-4" />
+                                Lampiran Foto Pendukung
+                                <span className="text-xs font-normal text-muted-foreground ml-1">(maks. 5 foto)</span>
+                            </Label>
+
+                            {/* Photo previews */}
+                            {previewUrls.length > 0 && (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {previewUrls.map((url, index) => (
+                                        <div key={index} className="relative group rounded-lg overflow-hidden border bg-muted aspect-square">
+                                            <img
+                                                src={url}
+                                                alt={`Lampiran ${index + 1}`}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => removePhoto(index)}
+                                                className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                                            >
+                                                <X className="h-3.5 w-3.5" />
+                                            </button>
+                                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1.5 py-0.5 text-center">
+                                                Foto {index + 1}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Upload button */}
+                            {(data.lampiran_foto?.length || 0) < 5 && (
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="flex items-center justify-center w-full rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 bg-muted/30 hover:bg-muted/50 transition-colors py-4 gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+                                >
+                                    <ImagePlus className="h-5 w-5" />
+                                    <span>Tambah Foto</span>
+                                </button>
+                            )}
+
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/jpg,image/webp"
+                                multiple
+                                onChange={handleFileSelect}
+                                className="hidden"
+                            />
+
+                            {errors.lampiran_foto && <span className="text-sm text-destructive">{errors.lampiran_foto}</span>}
+                            {(errors as any)['lampiran_foto.0'] && <span className="text-sm text-destructive">{(errors as any)['lampiran_foto.0']}</span>}
                         </div>
                     </div>
 

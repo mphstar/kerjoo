@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { type PermintaanPeralatan, type PermintaanBbm, type MasterPeralatan } from '@/types/logbook';
 import { Head, router, usePage } from '@inertiajs/react';
-import { CheckCircle, Clock, FileDown, Fuel, Package, Plus, Trash2, Wrench, XCircle } from 'lucide-react';
+import { CheckCircle, Clock, Eye, FileDown, Fuel, Package, Plus, Trash2, Wrench, XCircle } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import PeralatanFormDialog from '../peralatan/form-dialog';
 import BbmFormDialog from '../bbm/form-dialog';
+import BbmDetailDialogPelaksana from '../bbm/detail-dialog';
 
 interface Props {
     permintaanPeralatan: { data: PermintaanPeralatan[] };
@@ -27,6 +28,8 @@ export default function PermintaanIndex({ permintaanPeralatan, permintaanBbm, ma
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [bbmDetailOpen, setBbmDetailOpen] = useState(false);
+    const [selectedBbm, setSelectedBbm] = useState<PermintaanBbm | null>(null);
 
     // Categorize peralatan
     const catPeralatan = useMemo(() => {
@@ -70,6 +73,11 @@ export default function PermintaanIndex({ permintaanPeralatan, permintaanBbm, ma
                 },
             });
         }
+    };
+
+    const handleViewBbmDetail = (item: PermintaanBbm) => {
+        setSelectedBbm(item);
+        setBbmDetailOpen(true);
     };
 
     const getStatusBadge = (status: string) => {
@@ -327,14 +335,17 @@ export default function PermintaanIndex({ permintaanPeralatan, permintaanBbm, ma
                                     )}
 
                                     <div className="flex gap-2">
+                                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleViewBbmDetail(item)}>
+                                            <Eye className="mr-2 h-4 w-4" />Detail
+                                        </Button>
                                         <Button variant="outline" size="sm" className="flex-1" asChild>
                                             <a href={`/permintaan-bbm/${item.id}/export-pdf`} target="_blank" rel="noreferrer">
-                                                <FileDown className="mr-2 h-4 w-4" />Export PDF
+                                                <FileDown className="mr-2 h-4 w-4" />PDF
                                             </a>
                                         </Button>
                                         {item.status === 'pending' && (
-                                            <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDelete(item.id)}>
-                                                <Trash2 className="mr-2 h-4 w-4" />Hapus
+                                            <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id)}>
+                                                <Trash2 className="h-4 w-4" />
                                             </Button>
                                         )}
                                     </div>
@@ -347,6 +358,7 @@ export default function PermintaanIndex({ permintaanPeralatan, permintaanBbm, ma
 
             <PeralatanFormDialog open={isPeralatanFormOpen} onOpenChange={setIsPeralatanFormOpen} masterPeralatan={masterPeralatan || []} />
             <BbmFormDialog open={isBbmFormOpen} onOpenChange={setIsBbmFormOpen} />
+            <BbmDetailDialogPelaksana open={bbmDetailOpen} onOpenChange={setBbmDetailOpen} permintaan={selectedBbm} />
 
             <DeleteConfirmationDialog
                 open={deleteDialogOpen}
